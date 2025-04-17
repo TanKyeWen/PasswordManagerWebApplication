@@ -19,20 +19,52 @@
             id: 1,
             website: 'Google.com',
             username: 'alice@example.com',
-            folders: ['Test', 'May The Fire and Flame', 'Blackns'],
         },
         {
             id: 2,
             website: 'huahu.com',
             username: 'alice@example.com',
-            folders: ['Test', '###@'],
         },
         {
             id: 3,
             website: 'Yahoo.com',
             username: 'alice@example.com',
-            folders: ['Num'],
-        }
+        },
+        {
+            id: 4,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 5,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 6,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 7,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 8,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 9,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 10,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
     ])
 
     const syncClick = () => {
@@ -116,9 +148,11 @@
     }
     .credential-container{
         display: flex;
+        flex-wrap: wrap;
         gap: 15px;
     }
     .individual-credential-container{
+        flex: 0 0 calc((100% - 60px) / 5);
         min-width: 300px;
         min-height: 100px;
         max-width: 300px;

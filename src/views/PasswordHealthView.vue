@@ -31,10 +31,10 @@
     ])
 
     const router = useRouter();
-    const redirectToIndividualPage = (credentialID : number) => {
+    const redirectToEdit = (credentialID : number) => {
         router.push({
-            name:'credentialDetail',
-            params: { id: credentialID }
+            name:'editCredential',
+            query: { id: credentialID }
         })
     }
 </script>
@@ -66,7 +66,7 @@
             <div class="credential-header">Weak or Repeated Password</div>
             <div class="credential-container">
                 <div v-for="credential in credentials" class="individual-credential-container"
-                    @click="redirectToIndividualPage(credential.id)">
+                    @click="redirectToEdit(credential.id)">
                     <div class="website-txt">
                         {{ credential.website }}
                     </div>
@@ -146,9 +146,11 @@
     }
     .credential-container{
         display: flex;
+        flex-wrap: wrap;
         gap: 15px;
     }
     .individual-credential-container{
+        flex: 0 0 calc((100% - 60px) / 5);
         min-width: 300px;
         min-height: 100px;
         max-width: 300px;

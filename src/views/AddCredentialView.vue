@@ -20,36 +20,44 @@
                 <div class="input-container">
                     <div class="header-txt">Item Details</div>
                     <div class="item-details">
-                        <div class="field-name">Item Name</div>
-                        <input type="text" name="website-name-field" class="website-name-field" :value="credential.website"><br>
+                        <div class="field-name">Website Name</div>
+                        <input type="text" name="website-name-field" class="website-name-field" placeholder="Google.com"><br>
                     </div>
                     <div class="header-txt">Login Credential</div>
                     <div class="login-credential">
                         <div class="field-name">Username</div>
-                        <input type="text" name="username" class="username" :value="credential.username" required><br>
+                        <input type="text" name="username" class="username" placeholder="Username" required><br>
                         <div class="line"></div>
                         <div class="field-name">Password</div>
                         <div class="password-field">
-                            <input type="text" name="password" class="password" value="password1test" required><br>
+                            <input type="text" name="password" class="password" placeholder="Password" required><br>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="gen-container">
                 <div class="gen-opt">
-                    <div class="random-password-btn" @click="currentComponent = 'RandomPassView'">
+                    <div class="random-password-btn" 
+                    :class="{ active: currentComponent === 'RandomPassView' }" 
+                    @click="currentComponent = 'RandomPassView'"
+                    >
                         Password
                     </div>
-                    <div class="passphrase-password-btn" @click="currentComponent = 'PassphraseView'">
+                    <div class="passphrase-password-btn"  
+                    :class="{ active: currentComponent === 'PassphraseView' }" 
+                    @click="currentComponent = 'PassphraseView'"
+                    >
                         Passphrase
                     </div>
                 </div>
                 <component :is="tabs[currentComponent]" />
             </div>
             <div class="action-section">
-                <div class="add-credential-btn">
-                    Add Credential
-                </div>
+                <RouterLink to="/vault" active-class="active-link">
+                    <div class="add-credential-btn">
+                        Add Credential
+                    </div>
+                </RouterLink>
                 <RouterLink to="/vault" active-class="active-link">
                     <div class="back-btn">
                         Cancel
@@ -129,28 +137,35 @@
     .gen-opt{
         display: flex;
         justify-content: center;
-        font-size: 30px;
+        font-size: 25px;
         padding-bottom: 25px;
     }
-    .random-password-btn{
+    .random-password-btn, .passphrase-password-btn{
+        cursor: pointer;
         border-width: 2px;
         border-style: solid;
         border-color: #8F7E6A;
+        padding-right: 15px;
+        padding-left: 15px;
+        min-width: 250px;
+        background-color: inherit;
+        color: inherit;
+    }
+    .random-password-btn{
         border-top-left-radius: 25px;
         border-bottom-left-radius: 25px;
         text-align: right;
-        padding-right: 15px;
-        min-width: 250px;
     }
     .passphrase-password-btn{
-        border-width: 2px;
-        border-style: solid;
-        border-color: #8F7E6A;
         border-top-right-radius: 25px;
         border-bottom-right-radius: 25px;
         text-align: left;
-        padding-left: 15px;
-        min-width: 250px;
+    }
+    .active{
+        background-color: #8F7E6A !important;
+        color: #503333 !important;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     .action-section{
         position: fixed;

@@ -9,9 +9,56 @@
         },
         setup() {
             const credentials = ref([
-                { id: 1, website: 'Google.com', username: 'alice@example.com', folders: ['Test', 'May The Fire and Flame', 'Blackns'] },
-                { id: 2, website: 'huahu.com', username: 'alice@example.com', folders: ['Test', '###@'] },
-                { id: 3, website: 'Yahoo.com', username: 'alice@example.com', folders: ['Num'] },
+            {
+                id: 1,
+                website: 'Google.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 2,
+                website: 'huahu.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 3,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 4,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 5,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 6,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 7,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 8,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 9,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
+            {
+                id: 10,
+                website: 'Yahoo.com',
+                username: 'alice@example.com',
+            },
             ]);
 
             const route = useRoute();
@@ -27,14 +74,14 @@
                 })
             }
             
-        const showModal = ref(false);
+            const showModal = ref(false);
 
-        const deleteItem = () => {
-            // Your delete logic here
-            console.log('Item deleted');
-            showModal.value = false;
-            router.push('/vault');
-        };
+            const deleteItem = () => {
+                // Your delete logic here
+                console.log('Item deleted');
+                showModal.value = false;
+                router.push('/vault');
+            };
 
             return {
                 credential,

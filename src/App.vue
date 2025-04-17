@@ -8,7 +8,7 @@
 
     const showLeftNav = computed(() => {        
         // List of routes where LeftNav should be hidden
-        const hiddenRoutes = ['/login', '/register'];
+        const hiddenRoutes = ['/signIn', '/signUp'];
         return !hiddenRoutes.includes(router.currentRoute.value.path);
     });
 

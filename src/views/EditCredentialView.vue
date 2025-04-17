@@ -11,9 +11,56 @@
     };
 
     const credentials = ref([
-        { id: 1, website: 'Google.com', username: 'alice@example.com', folders: ['Test', 'May The Fire and Flame', 'Blackns'] },
-        { id: 2, website: 'huahu.com', username: 'alice@example.com', folders: ['Test', '###@'] },
-        { id: 3, website: 'Yahoo.com', username: 'alice@example.com', folders: ['Num'] },
+    {
+            id: 1,
+            website: 'Google.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 2,
+            website: 'huahu.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 3,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 4,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 5,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 6,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 7,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 8,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 9,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
+        {
+            id: 10,
+            website: 'Yahoo.com',
+            username: 'alice@example.com',
+        },
     ]);
 
     const route = useRoute();
@@ -50,10 +97,16 @@
             </div>
             <div class="gen-container">
                 <div class="gen-opt">
-                    <div class="random-password-btn" @click="currentComponent = 'RandomPassView'">
+                    <div class="random-password-btn" 
+                    :class="{ active: currentComponent === 'RandomPassView' }" 
+                    @click="currentComponent = 'RandomPassView'"
+                    >
                         Password
                     </div>
-                    <div class="passphrase-password-btn" @click="currentComponent = 'PassphraseView'">
+                    <div class="passphrase-password-btn"  
+                    :class="{ active: currentComponent === 'PassphraseView' }" 
+                    @click="currentComponent = 'PassphraseView'"
+                    >
                         Passphrase
                     </div>
                 </div>
@@ -91,11 +144,6 @@
     }
     .edit-credential-container{
         flex: 1;
-    }
-    .header-txt{
-        font-size: 30px;
-        font-weight: 600;
-        margin-bottom: 25px;
     }
     .input-container{
         font-size: 30px;
@@ -147,28 +195,35 @@
     .gen-opt{
         display: flex;
         justify-content: center;
-        font-size: 30px;
+        font-size: 25px;
         padding-bottom: 25px;
     }
-    .random-password-btn{
+    .random-password-btn, .passphrase-password-btn{
+        cursor: pointer;
         border-width: 2px;
         border-style: solid;
         border-color: #8F7E6A;
+        padding-right: 15px;
+        padding-left: 15px;
+        min-width: 250px;
+        background-color: inherit;
+        color: inherit;
+    }
+    .random-password-btn{
         border-top-left-radius: 25px;
         border-bottom-left-radius: 25px;
         text-align: right;
-        padding-right: 15px;
-        min-width: 250px;
     }
     .passphrase-password-btn{
-        border-width: 2px;
-        border-style: solid;
-        border-color: #8F7E6A;
         border-top-right-radius: 25px;
         border-bottom-right-radius: 25px;
         text-align: left;
-        padding-left: 15px;
-        min-width: 250px;
+    }
+    .active{
+        background-color: #8F7E6A !important;
+        color: #503333 !important;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     .action-section{
         position: fixed;
