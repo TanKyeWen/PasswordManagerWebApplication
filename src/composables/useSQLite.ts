@@ -2,29 +2,32 @@ import type { DbId } from '@sqlite.org/sqlite-wasm'
 import { sqlite3Worker1Promiser } from '@sqlite.org/sqlite-wasm'
 import { ref } from 'vue'
 
-const databaseConfig = {
-  filename: 'file:mydb.sqlite3?vfs=opfs',
-  tables: {
-    test: {
-      name: 'test_table',
-      schema: `
-        CREATE TABLE IF NOT EXISTS test_table (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `,
-    },
-  },
-} as const
-
-export function useSQLite() {
+export function useSQLite(username: string) {
   const isLoading = ref(false)
   const error = ref<Error | null>(null)
   const isInitialized = ref(false)
 
   let promiser: ReturnType<typeof sqlite3Worker1Promiser> | null = null
   let dbId: string | null = null
+
+  const databaseConfig = {
+  filename: `file:${username.toLowerCase()}_credentials.sqlite3?vfs=opfs`,
+  tables: {
+    test: {
+      credentials: {
+        name: 'credentials',
+        schema: `
+          CREATE TABLE IF NOT EXISTS test_table (
+            id INTEGER PRIMARY KEY,
+            credenttial_website TEXT NOT NULL,
+            credential_username TEXT NOT NULL,
+            credential_password TEXT NOT NULL
+          );
+        `,
+      },
+    },
+  },
+} as const
 
   async function initialize() {
     if (isInitialized.value) return true
@@ -55,10 +58,14 @@ export function useSQLite() {
       dbId = openResponse.result.dbId as string
 
       // Create initial tables
-      await promiser('exec', {
-        dbId,
-        sql: databaseConfig.tables.test.schema,
-      })
+      for (const table of Object.values(databaseConfig.tables)) {
+        if (table.credentials && table.credentials.schema) {
+          await promiser('exec', {
+            dbId,
+            sql: table.credentials.schema,
+          })
+        }
+      }
 
       isInitialized.value = true
       return true
@@ -108,5 +115,6 @@ export function useSQLite() {
     error,
     isInitialized,
     executeQuery,
+    initialize,
   }
 }
