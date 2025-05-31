@@ -10,7 +10,10 @@
                 <div class="header-txt">REGISTER PAGE</div>
                 <div class="sign-up-credential">
                     <div class="field-name">Username</div>
-                        <input type="text" name="username" class="username" placeholder="Enter Username Or Email here" required>
+                        <input type="text" name="username" class="username" placeholder="Enter Username here" required>
+                    <div class="line"></div>
+                    <div class="field-name">Email</div>
+                        <input type="email" name="email" class="email" placeholder="Enter Username here" required>
                     <div class="line"></div>
                     <div class="field-name">Password</div>
                         <input type="password" name="password" class="password" placeholder="Enter Password here" required>
