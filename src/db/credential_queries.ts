@@ -399,35 +399,60 @@ export async function syncVaultData(promiser, user_id) {
 /**
  * Retrieve all credentials for auth user
  */
-export async function getAllCredentials(promiser, user_id) {
-   try {
-       const result = await promiser('exec', {
-           sql: `
-               SELECT
-                   id,
-                   credential_website,
-                   credential_username,
-               FROM credentials
-               WHERE user_id = ?
-               ORDER BY credential_website ASC
-           `,
-           bind: [user_id],
-       });
+export async function getAllCredentials() {
+   try{
+        const response = await axios.get('/api/session', {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+            },
+            timeout: 5000, // 5 second timeout
+            withCredentials: true // Send session cookies
+        });
+        
+        if (!response.data || !response.data.success) {
+            throw new Error(response.data?.error || 'Invalid response from server');
+        }
+        const user_id = response.data.data.user_id;
+        
+        try {
+            const result = await executeQuery(`
+                SELECT
+                    id,
+                    credential_website,
+                    credential_username
+                FROM credentials
+                WHERE user_id = ?
+                ORDER BY credential_website ASC
+            `, [user_id]);
+            
+            const data = result.result.resultRows || [];
+            
+            return {
+                success: true,
+                data: data,
+                count: data.length
+            };
 
-       return {
-           success: true,
-           data: result || [],
-           count: result ? result.length : 0
-       };
-   } catch (error) {
-       console.error('Error fetching credentials:', error);
-       return {
-           success: false,
-           error: error.message,
-           data: [],
-           count: 0
-       };
-   }
+        } catch (error) {
+            console.error('Error fetching credentials:', error);
+            return {
+                success: false,
+                error: error.message,
+                data: [],
+                count: 0
+            };
+        }
+
+   }catch (error) {
+        console.error('Error fetching session:', error);
+        return {
+            success: false,
+            error: error.message,
+            data: [],
+            count: 0
+        };
+    }
 }
 
 /**

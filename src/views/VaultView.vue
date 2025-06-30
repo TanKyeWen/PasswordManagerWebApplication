@@ -5,15 +5,13 @@
 
     const router = useRouter();    
 
-    const vaultData = ref(null)
     const loading = ref(false)
+    const credentials = ref([])
 
     async function loadInitialVaultData() {
         loading.value = true
         try {
-            const promise = fetch('/api/vault/data')
-            const result = await fetchVaultData(promise)
-            vaultData.value = result
+            const result = await fetchVaultData()
         } catch (error) {
             console.log('Error:', error)
         } finally {
@@ -21,8 +19,21 @@
         }
     }
 
+    async function loadVault(){
+        loading.value = true
+        try {
+            const credentialsList = await getAllCredentials()
+            console.log('Credentials:', credentials)
+        } catch (error) {
+            console.error('Error loading vault:', error)
+        } finally {
+            loading.value = false
+        }
+    }
+
     onMounted(() => {
         loadInitialVaultData()
+        loadVault()
     })
 
     const lastSyncDate = ref([
@@ -35,60 +46,6 @@
     ])
 
     const btnMsg = ref(syncBtnMsg.value[0].message)
-
-
-    const credentials = ref([
-        {
-            id: 1,
-            website: 'Google.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 2,
-            website: 'huahu.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 3,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 4,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 5,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 6,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 7,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 8,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 9,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 10,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-    ])
 
     const syncClick = () => {
         btnMsg.value = syncBtnMsg.value[1].message
