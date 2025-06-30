@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { ref } from 'vue'
+import { useSQLite } from '@/composables/useSQLite'
+
+const { isLoading, error, executeQuery } = useSQLite()
 
 // Configure axios defaults
 axios.defaults.withCredentials = true // Important for session cookies
@@ -7,28 +11,13 @@ axios.defaults.baseURL = 'http://localhost:9011'
 /**
  * Fetch vault data from API and store in local SQLite database
  */
-export async function fetchVaultData(promiser, user_id) {
+export async function fetchVaultData() {
     try {
-        // Input validation
-        if (!promiser || typeof promiser !== 'function') {
-            throw new Error('Invalid promiser function provided')
-        }
-        
-        if (!user_id) {
-            throw new Error('User ID is required')
-        }
-
-        console.log(`Fetching vault data for user: ${user_id}`)
-        
         // Fetch data from API with proper headers
         const response = await axios.get('/api/vault', {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
-            },
-            // Optional: send user_id as query parameter for verification
-            params: {
-                user_id: user_id
             },
             timeout: 5000, // 10 second timeout
             withCredentials: true // Send session cookies
@@ -56,54 +45,51 @@ export async function fetchVaultData(promiser, user_id) {
         const results = []
         let insertedCount = 0
         
-        // Begin transaction for better performance
-        await promiser('exec', { sql: 'BEGIN TRANSACTION' })
+        // Start transaction
+        await executeQuery('BEGIN TRANSACTION')
         
         try {
+            // Define the prepared SQL once
+            const insertSQL = `
+            INSERT OR REPLACE INTO credentials
+            (id, credential_website, credential_username, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            `
+            
             for (const item of vaultItems) {
-                // Validate required fields
                 if (!item.credential_website || !item.credential_username) {
                     console.warn('Skipping invalid vault item:', item)
                     continue
                 }
-
-                // Insert into local database
-                const result = await promiser('exec', {
-                    sql: `
-                        INSERT OR REPLACE INTO credentials 
-                        (user_id, credential_website, credential_username, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?)
-                    `,
-                    bind: [
-                        user_id,
-                        item.credential_website.trim(),
-                        item.credential_username.trim(),
-                        item.createdAt,
-                        item.updatedAt
-                    ]
-                })
-
-                results.push(result)
+                
+                // Execute with the same SQL but different parameters
+                const result = await executeQuery(insertSQL, [
+                    item.id,
+                    item.credential_website.trim(),
+                    item.credential_username.trim(),
+                    item.createdAt,
+                    item.updatedAt
+                ])
+                
+                results.push(result.result)
                 insertedCount++
                 
                 console.log(`Inserted credential for ${item.credential_website}`)
             }
             
-            // Commit transaction
-            await promiser('exec', { sql: 'COMMIT' })
+            await executeQuery('COMMIT')
             
-        } catch (insertError) {
-            // Rollback on error
-            await promiser('exec', { sql: 'ROLLBACK' })
-            throw insertError
-        }
-
-        return {
-            success: true,
-            message: `Successfully synced ${insertedCount} vault items`,
-            insertedCount,
-            totalItems: vaultItems.length,
-            results
+            return {
+                success: true,
+                message: `Successfully synced ${insertedCount} vault items`,
+                insertedCount,
+                totalItems: vaultItems.length,
+                results
+            }
+            
+        } catch (error) {
+            await executeQuery('ROLLBACK').catch(console.error)
+            throw error
         }
 
     } catch (error) {

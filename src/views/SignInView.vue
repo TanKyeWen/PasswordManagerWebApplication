@@ -1,6 +1,42 @@
 <script setup lang="ts">
-    import { RouterLink } from 'vue-router'
-    
+    import { useRouter, RouterLink } from 'vue-router'
+    import axios from 'axios'
+    import { ref } from 'vue'
+
+    const router = useRouter()
+
+    const username = ref('')
+    const password = ref('')
+
+    // Your signin function
+    async function signin(username, password) {
+        try {
+            const response = await axios.post('/api/auth/signin', {
+                username: username,
+                password: password
+            });
+            
+            console.log('Login successful:', response.data);
+            return response.data;
+            
+        } catch (error) {
+            console.error('Login failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    async function handleLogin() {
+        try {
+            const result = await signin(username.value, password.value);
+            console.log('User logged in:', result);
+            // Redirect to the vault view after successful login
+            router.push('/vault');
+
+        } catch (error) {
+            console.log('Login error:', error);
+        }
+    }
+
 </script>
 
 <template>
@@ -10,10 +46,10 @@
                 <div class="header-txt">LOGIN PAGE</div>
                 <div class="login-credential">
                     <div class="field-name">Username</div>
-                        <input type="text" name="username" class="username" placeholder="Enter Username Or Email here" required>
+                        <input type="text" name="username" class="username" v-model="username" placeholder="Enter Username Or Email here" required>
                     <div class="line"></div>
                     <div class="field-name">Password</div>
-                        <input type="password" name="password" class="password" placeholder="Enter Password here" required>
+                        <input type="password" name="password" class="password" v-model="password" placeholder="Enter Password here" required>
                 </div>
             </div>
             <div class="redirect-container">
@@ -25,11 +61,9 @@
                 </RouterLink>
             </div>
             <div class="action-section">
-                <RouterLink to="/">
-                    <div class="login-btn">
-                        Login Now
-                    </div>
-                </RouterLink>
+                <div class="login-btn" @click="handleLogin">
+                    Login Now
+                </div>
             </div>
         </main>
     </body>

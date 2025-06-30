@@ -2,7 +2,7 @@ import type { DbId } from '@sqlite.org/sqlite-wasm'
 import { sqlite3Worker1Promiser } from '@sqlite.org/sqlite-wasm'
 import { ref } from 'vue'
 
-export function useSQLite(username: string) {
+export function useSQLite() {
   const isLoading = ref(false)
   const error = ref<Error | null>(null)
   const isInitialized = ref(false)
@@ -11,7 +11,7 @@ export function useSQLite(username: string) {
   let dbId: string | null = null
 
   const databaseConfig = {
-  filename: `file:${username.toLowerCase()}_credentials.sqlite3?vfs=opfs`,
+  filename: `file:credentials.sqlite3?vfs=opfs`,
   tables: {
     test: {
       credentials: {

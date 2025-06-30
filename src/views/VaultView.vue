@@ -1,8 +1,30 @@
 <script setup lang="ts">
     import { RouterLink, useRouter } from 'vue-router';
-    import { ref } from 'vue';
+    import { ref, onMounted } from 'vue'
+    import { fetchVaultData, syncVaultData, getAllCredentials } from '@/db/credential_queries';
 
-    const router = useRouter();
+    const router = useRouter();    
+
+    const vaultData = ref(null)
+    const loading = ref(false)
+
+    async function loadInitialVaultData() {
+        loading.value = true
+        try {
+            const promise = fetch('/api/vault/data')
+            const result = await fetchVaultData(promise)
+            vaultData.value = result
+        } catch (error) {
+            console.log('Error:', error)
+        } finally {
+            loading.value = false
+        }
+    }
+
+    onMounted(() => {
+        loadInitialVaultData()
+    })
+
     const lastSyncDate = ref([
         { message: '19th February 2025' }
     ])
@@ -13,6 +35,7 @@
     ])
 
     const btnMsg = ref(syncBtnMsg.value[0].message)
+
 
     const credentials = ref([
         {

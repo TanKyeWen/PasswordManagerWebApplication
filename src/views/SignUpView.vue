@@ -1,6 +1,45 @@
 <script setup lang="ts">
-    import { RouterLink } from 'vue-router'
-    
+    import { useRouter, RouterLink } from 'vue-router'
+    import axios from 'axios'
+    import { ref } from 'vue'
+
+    const router = useRouter()
+
+    const username = ref('')
+    const email = ref('')
+    const password = ref('')
+    const rePassword = ref('')
+
+    // Function to handle user signup
+    async function signup(username, email, password, rePassword) {
+        try {
+            const response = await axios.post('/api/auth/signup', {
+                username: username,
+                email: email,
+                password: password,
+                re_password: rePassword  // Note the hyphen in the key name
+            });
+            
+            console.log('Signup successful:', response.data);
+            return response.data;
+            
+        } catch (error) {
+            console.error('Signup failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    async function handleRegister() {
+        try {
+            const result = await signup(username.value, email.value, password.value, rePassword.value);
+            console.log('User logged in:', result);
+            // Redirect to the vault view after successful registration
+            router.push('/vault');
+
+        } catch (error) {
+            console.log('Login error:', error);
+        }
+    }
 </script>
 
 <template>
@@ -10,16 +49,16 @@
                 <div class="header-txt">REGISTER PAGE</div>
                 <div class="sign-up-credential">
                     <div class="field-name">Username</div>
-                        <input type="text" name="username" class="username" placeholder="Enter Username here" required>
+                        <input type="text" name="username" class="username" v-model="username" placeholder="Enter Username here" required>
                     <div class="line"></div>
                     <div class="field-name">Email</div>
-                        <input type="email" name="email" class="email" placeholder="Enter Username here" required>
+                        <input type="email" name="email" class="email" v-model="email" placeholder="Enter Username here" required>
                     <div class="line"></div>
                     <div class="field-name">Password</div>
-                        <input type="password" name="password" class="password" placeholder="Enter Password here" required>
+                        <input type="password" name="password" class="password" v-model="password" placeholder="Enter Password here" required>
                     <div class="line"></div>
                     <div class="field-name">Repeat Password</div>
-                        <input type="password" name="re-password" class="re-password" placeholder="Repeat Your Password here" required>
+                        <input type="password" name="rePassword" class="rePassword" v-model="rePassword" placeholder="Repeat Your Password here" required>
                 </div>
             </div>
             <div class="redirect-container">
@@ -31,11 +70,9 @@
                 </RouterLink>
             </div>
             <div class="action-section">
-                <RouterLink to="/">
-                    <div class="sign-up-btn">
-                        Register Now
-                    </div>
-                </RouterLink>
+                <div class="sign-up-btn" @click="handleRegister">
+                    Register Now
+                </div>
             </div>
         </main>
     </body>
