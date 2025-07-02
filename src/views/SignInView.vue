@@ -39,6 +39,9 @@
         try {
             const result = await signin(username.value, password.value);
             console.log('User logged in:', result);
+
+            localStorage.setItem('user_id', result.user_id);
+
             // Redirect to the vault view after successful login
             router.push('/vault');
 

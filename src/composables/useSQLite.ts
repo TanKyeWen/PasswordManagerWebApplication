@@ -19,7 +19,8 @@ export function useSQLite() {
         schema: `
           CREATE TABLE IF NOT EXISTS test_table (
             id INTEGER PRIMARY KEY,
-            credenttial_website TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            credential_website TEXT NOT NULL,
             credential_username TEXT NOT NULL,
             credential_password TEXT NOT NULL
           );

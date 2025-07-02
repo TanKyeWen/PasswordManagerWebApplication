@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { RouterLink, useRouter } from 'vue-router';
     import { ref, onMounted } from 'vue'
-    import { fetchVaultData, syncVaultData, getAllCredentials } from '@/db/credential_queries';
+    import { fetchVaultData, getAllCredentials } from '@/db/credential_queries';
 
     const router = useRouter();    
 
@@ -12,8 +12,13 @@
         loading.value = true
         try {
             const result = await fetchVaultData()
+            console.log('Vault data loaded:', result)
         } catch (error) {
             console.log('Error:', error)
+            if (error.response?.status === 401) {
+                // Redirect to login if unauthorized
+                router.push('/signIn')
+            }
         } finally {
             loading.value = false
         }
@@ -22,7 +27,7 @@
     async function loadVault(){
         loading.value = true
         try {
-            const credentialsList = await getAllCredentials()
+            const credentialsList = await getAllCredentials(localStorage.getItem('user_id'))
             console.log('Credentials:', credentials)
         } catch (error) {
             console.error('Error loading vault:', error)

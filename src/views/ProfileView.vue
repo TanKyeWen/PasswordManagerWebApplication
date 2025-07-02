@@ -39,8 +39,7 @@
         this.isAuthenticated = false;
         
         // Clear localStorage if you're storing user data there
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        localStorage.removeItem('user_id');
         
         // Clear sessionStorage if you're using it
         sessionStorage.removeItem('user');
