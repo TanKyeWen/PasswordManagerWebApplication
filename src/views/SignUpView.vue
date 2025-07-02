@@ -2,6 +2,7 @@
     import { useRouter, RouterLink } from 'vue-router'
     import axios from 'axios'
     import { ref } from 'vue'
+    axios.defaults.baseURL = 'http://localhost:9011'
 
     const router = useRouter()
 
@@ -18,7 +19,16 @@
                 email: email,
                 password: password,
                 re_password: rePassword  // Note the hyphen in the key name
-            });
+                }, 
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    timeout: 10000, // 10 second timeout
+                    withCredentials: true, // Send session cookies
+                }
+            );
             
             console.log('Signup successful:', response.data);
             return response.data;

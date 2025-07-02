@@ -2,6 +2,7 @@
     import { useRouter, RouterLink } from 'vue-router'
     import axios from 'axios'
     import { ref } from 'vue'
+    axios.defaults.baseURL = 'http://localhost:9011'
 
     const router = useRouter()
 
@@ -14,7 +15,16 @@
             const response = await axios.post('/api/auth/signin', {
                 username: username,
                 password: password
-            });
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    timeout: 10000, // 10 second timeout
+                    withCredentials: true, // Send session cookies
+                }
+            );
             
             console.log('Login successful:', response.data);
             return response.data;

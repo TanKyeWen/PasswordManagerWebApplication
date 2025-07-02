@@ -1,6 +1,64 @@
 <script setup lang="ts">
-    import { RouterLink } from 'vue-router'
+    import { useRouter, RouterLink } from 'vue-router'
     import profileIcon from '@/assets/profile_icon.png';
+    import axios from 'axios'
+    import { ref } from 'vue'
+    axios.defaults.baseURL = 'http://localhost:9011'
+
+    const router = useRouter()
+
+    async function logout() {
+        try {
+            const response = await axios.post('/api/auth/signout', {
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    timeout: 10000, // 10 second timeout
+                    withCredentials: true, // Send session cookies
+                }
+            );
+            
+            console.log('Logout successful:', response.data);
+
+            // this.clearUserData();
+
+            return response.data;
+            
+        } catch (error) {
+            console.error('Logout failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    const clearUserData = () => {
+        // Clear any user data stored in component state
+        this.user = null;
+        this.isAuthenticated = false;
+        
+        // Clear localStorage if you're storing user data there
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        
+        // Clear sessionStorage if you're using it
+        sessionStorage.removeItem('user');
+        console.log('User data cleared');
+    };
+
+    async function handleLogout() {
+        try {
+            const result = await logout();
+            console.log('Logout Successful:', result);
+            // Redirect to the vault view after successful login
+            router.push('/signIn');
+
+        } catch (error) {
+            console.log('Logout error:', error);
+        }
+    }
+
 </script>
 <template>
     <body id="profile-page">
@@ -28,11 +86,9 @@
                     </div>
                 </RouterLink>
             </nav>
-            <RouterLink to="/signIn">
-                <div class="logout-btn">
-                    Logout
-                </div>
-            </RouterLink>
+            <div class="logout-btn" @click="handleLogout">
+                Logout
+            </div>
         </main>
     </body>
 </template>
