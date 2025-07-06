@@ -8,15 +8,36 @@
     const loading = ref(false)
     const credentials = ref([])
 
-    async function loadInitialVaultData() {
+    async function loadVault() {
         loading.value = true
         try {
-            const result = await fetchVaultData()
-            console.log('Vault data loaded:', result)
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+        
+            const vaultData = await fetchVaultData()
+            console.log('Vault data loaded:', vaultData)
+        
+            const fetchedCredentials = await getAllCredentials(userId)
+            console.log('Raw fetchedCredentials:', fetchedCredentials)
+            
+            if (fetchedCredentials.success) {
+                // Fix: Access array elements by index since data is array of arrays
+                credentials.value = fetchedCredentials.data.map(cred => ({
+                    id: cred[0],           // first element is id
+                    website: cred[1],      // second element is credential_website
+                    username: cred[2]      // third element is credential_username
+                }))
+                console.log('Mapped credentials:', credentials.value)
+            } else {
+                console.error('Error fetching credentials:', fetchedCredentials.error)
+            }
+        
         } catch (error) {
-            console.log('Error:', error)
+            console.error('Error loading vault:', error)
             if (error.response?.status === 401) {
-                // Redirect to login if unauthorized
                 router.push('/signIn')
             }
         } finally {
@@ -24,20 +45,7 @@
         }
     }
 
-    async function loadVault(){
-        loading.value = true
-        try {
-            const credentialsList = await getAllCredentials(localStorage.getItem('user_id'))
-            console.log('Credentials:', credentials)
-        } catch (error) {
-            console.error('Error loading vault:', error)
-        } finally {
-            loading.value = false
-        }
-    }
-
     onMounted(() => {
-        loadInitialVaultData()
         loadVault()
     })
 
@@ -76,7 +84,12 @@
                     <input type="text" placeholder="Search...">
                 </div>
                 <div class="credential-container">
-                    <div v-for="credential in credentials" class="individual-credential-container"
+                    <div v-if="credentials.length === 0">
+                        No credentials found
+                    </div>
+                    <div v-for="credential in credentials" 
+                        :key="credential.id" 
+                        class="individual-credential-container"
                         @click="redirectToIndividualPage(credential.id)">
                         <div class="website-txt">
                             {{ credential.website }}

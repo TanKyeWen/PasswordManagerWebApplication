@@ -31,6 +31,7 @@
             );
             
             console.log('Signup successful:', response.data);
+            localStorage.setItem('user_id', response.data.user.user_id);
             return response.data;
             
         } catch (error) {
@@ -43,8 +44,6 @@
         try {
             const result = await signup(username.value, email.value, password.value, rePassword.value);
             console.log('User logged in:', result);
-
-            localStorage.setItem('user_id', result.user_id);
 
             // Redirect to the vault view after successful registration
             router.push('/vault');

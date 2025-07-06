@@ -15,9 +15,9 @@ export function useSQLite() {
   tables: {
     test: {
       credentials: {
-        name: 'credentials',
+        name: 'local_database',
         schema: `
-          CREATE TABLE IF NOT EXISTS test_table (
+          CREATE TABLE IF NOT EXISTS credentials (
             id INTEGER PRIMARY KEY,
             user_id INTEGER NOT NULL,
             credential_website TEXT NOT NULL,

@@ -20,13 +20,12 @@ async function getCurrentUserId() {
             },
             withCredentials: true
         })
-        
-        if (response.data?.success && response.data?.user?.id) {
-            return response.data.user.id
+       
+        if (response.data?.success && response.data?.data?.user_id) {
+            return response.data.data.user_id
         }
-        
+       
         throw new Error('No valid session found')
-
     } catch (error) {
         console.error('Error getting current user ID:', error)
         return null
@@ -47,7 +46,7 @@ async function validateUserAccess(requestedUserId: number) {
         }
     }
 
-    if (sessionUserId !== requestedUserId) {
+    if (String(sessionUserId) !== String(requestedUserId)) {
         return {
             valid: false,
             error: 'Access denied - user ID mismatch',
