@@ -1,96 +1,126 @@
 <script lang="ts">
-    import { ref } from 'vue';
+    import { ref, onMounted } from 'vue';
     import { useRouter, useRoute, RouterLink } from 'vue-router';
     import ConfirmModal from '@/components/ConfirmModal.vue';
+    import { getIndividualCredential } from '@/db/credential_queries';
 
-    export default {
-        components: {
-            ConfirmModal
-        },
-        setup() {
-            const credentials = ref([
-            {
-                id: 1,
-                website: 'Google.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 2,
-                website: 'huahu.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 3,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 4,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 5,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 6,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 7,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 8,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 9,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            {
-                id: 10,
-                website: 'Yahoo.com',
-                username: 'alice@example.com',
-            },
-            ]);
+    const router = useRouter();
+    const route = useRoute();    
 
-            const route = useRoute();
-            const credentialId = route.params.id;
+    const loading = ref(false)
+    const credential = ref([])
+    const credentialId = Array.isArray(route.params.id) 
+        ? parseInt(route.params.id[0]) 
+        : parseInt(route.params.id);
 
-            const credential = ref(credentials.value.find(c => c.id === parseInt(credentialId[0])));
-
-            const router = useRouter();
-            const redirectToEdit = () => {
-                router.push({
-                    name:'editCredential',
-                    query: { id: credentialId }
-                })
+    async function loadCredential() {
+        loading.value = true
+        try {
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
             }
-            
-            const showModal = ref(false);
 
-            const deleteItem = () => {
-                // Your delete logic here
-                console.log('Item deleted');
-                showModal.value = false;
-                router.push('/vault');
-            };
-
-            return {
-                credential,
-                redirectToEdit,                
-                showModal,
-                deleteItem
-            };
+            const fetchedCredential = await getIndividualCredential(parseInt(userId), parseInt(route.params.id));
+            if (fetchedCredential.success) {
+                credential.value = fetchedCredential.data.map(cred => ({
+                    id: cred[0],
+                    website: cred[1],
+                    username: cred[2],
+                    password: cred[3]
+                }))
+            } else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
+                console.error('Unauthorized Access:', fetchedCredential.error)
+                router.push('/signIn')
+            } else if (fetchedCredential.code === 'NOT_FOUND') {
+                console.error('Credential not found:', fetchedCredential.error)
+                router.push('/vault')
+            } else {
+                console.error('Error fetching credentials:', fetchedCredential.error)
+            }
+        } catch (error) {
+            console.error('Error loading credentials:', error)
+        } finally {
+            loading.value = false
         }
-    };
+    }
+
+    async function deleteCredential() {
+        try {
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+
+            const fetchedCredential = await getIndividualCredential(parseInt(userId), credentialId);
+            if (fetchedCredential.success) {
+                credential.value = fetchedCredential.data.map(cred => ({
+                    id: cred[0],
+                    website: cred[1],
+                    username: cred[2],
+                    password: cred[3]
+                }))
+            }  else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
+                console.error('Unauthorized Access:', fetchedCredential.error)
+                router.push('/signIn')
+            } else if (fetchedCredential.code === 'NOT_FOUND') {
+                console.error('Credential not found:', fetchedCredential.error)
+                router.push('/vault')
+            } else {
+                console.error('Error fetching credentials:', fetchedCredential.error)
+            }
+        } catch (error) {
+            console.error('Error loading credentials:', error)
+        } finally {
+            loading.value = false
+        }
+    }
+
+    onMounted(() => {
+        loadCredential();
+    });
+
+    const showModal = ref(false)
+
+    const openModal = () => {
+        showModal.value = true
+    }
+
+    const handleConfirm = () => {
+        console.log('User confirmed deletion!')
+        showModal.value = false
+        
+        deleteCredential()
+        router.push('/vault')
+    }
+
+    const handleCancel = () => {
+        console.log('User cancelled')
+        showModal.value = false
+    }
+
+    const redirectToEdit = () => {
+        try {
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+
+            router.push({
+                name:'editCredential',
+                params: { id: credentialId }
+            })
+                
+        } catch (error) {
+            console.error('Error loading:', error)
+            if (error.response?.status === 401) {
+                router.push('/signIn')
+            }
+        }
+    }
 
 </script>
 
@@ -120,10 +150,10 @@
                 <div class="edit-credential-btn" @click="redirectToEdit()">
                     Edit Credential
                 </div>
-                <div class="back-btn" @click="showModal = true">
+                <div class="back-btn" @click="openModal">
                     Delete
                 </div>
-                <ConfirmModal :show="showModal" @confirm="deleteItem" @cancel="showModal = false" />
+                <ConfirmModal :show="showModal" @confirm="handleConfirm" @cancel="handleCancel" />
             </div>
         </main>
     </body>

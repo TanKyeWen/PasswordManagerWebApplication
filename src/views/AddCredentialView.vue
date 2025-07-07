@@ -9,6 +9,9 @@
         PassphraseView,
         RandomPassView,
     }
+
+    
+
 </script>
 <template>
     <body id="add-credential-page">

@@ -35,7 +35,7 @@ async function getCurrentUserId() {
 /**
  * Validate user access to credentials
  */
-async function validateUserAccess(requestedUserId: number) {
+export async function validateUserAccess(requestedUserId: number) {
     const sessionUserId = await getCurrentUserId()
 
     if (!sessionUserId) {
@@ -233,31 +233,47 @@ export async function getAllCredentials(userId: number) {
 /**
  * Retrieve individual credential data for auth user
  */
-export async function getIndividualCredential(promiser, user_id, credential_id) {
+export async function getIndividualCredential(user_id: number, credential_id: number) {
     try {
-        const result = await promiser('exec', {
-            sql: `
-                SELECT
-                    id,
-                    credential_website,
-                    credential_username,
-                    credential_password,
-                    updated_at
-                FROM credentials
-                WHERE user_id = ? AND id = ?
-                LIMIT 1
-            `,
-            bind: [user_id, credential_id],
-        });
+        // Validate user access
+        const accessCheck = await validateUserAccess(user_id)
+        if (!accessCheck.valid) {
+            return {
+                success: false,
+                error: accessCheck.error,
+                code: accessCheck.code
+            }
+        }
+
+        const result = await executeQuery( `
+            SELECT
+                id,
+                credential_website,
+                credential_username,
+                credential_password,
+            FROM credentials
+            WHERE user_id = ? AND id = ?
+            LIMIT 1
+            `, [user_id, credential_id]
+        );
 
         // Since we're getting a single credential, return the first item or null
         const credential = result && result.length > 0 ? result[0] : null;
+
+        if (!credential) {
+            return {
+                success: false,
+                error: 'Credential not found',
+                code: 'NOT_FOUND'
+            };
+        }
 
         return {
             success: true,
             data: credential,
             found: credential !== null
         };
+
     } catch (error) {
         console.error('Error fetching individual credential:', error);
         return {
@@ -272,7 +288,7 @@ export async function getIndividualCredential(promiser, user_id, credential_id) 
 /**
  * Add a new credential for auth user
  */
-export async function addCredential(promiser, user_id, credential_id, updates) {
+export async function addCredential(user_id, credential_id, updates) {
     // Input validation
     if (!user_id || !credential_id || !updates || typeof updates !== 'object') {
         return {
@@ -451,16 +467,28 @@ export async function updateCredential(promiser, user_id, credential_id, updates
 /**
  * Delete a credential for auth user
  */
-export async function deleteCredential(promiser, user_id, credential_id) {
+export async function deleteCredential(user_id: number, credential_id: number) {
     try {
+         // Validate user access
+        const accessCheck = await validateUserAccess(user_id)
+        if (!accessCheck.valid) {
+            return {
+                success: false,
+                error: accessCheck.error,
+                code: accessCheck.code
+            }
+        }
+
+        // Start transaction
+        await executeQuery('BEGIN TRANSACTION')
+
         // Check if credential exists
-        const checkResult = await promiser('exec', {
-            sql: `
+        const checkResult = await executeQuery(`
                 SELECT id FROM credentials 
                 WHERE user_id = ? AND id = ?
             `,
-            bind: [user_id, credential_id],
-        });
+            [user_id, credential_id]
+        );
 
         if (checkResult.length === 0) {
             return {
@@ -471,13 +499,16 @@ export async function deleteCredential(promiser, user_id, credential_id) {
         }
 
         // Proceed with deletion
-        await promiser('exec', {
-            sql: `
+        await executeQuery(`
                 DELETE FROM credentials 
                 WHERE user_id = ? AND id = ?
             `,
-            bind: [user_id, credential_id],
-        });
+            [user_id, credential_id],
+        );
+
+        await executeQuery('COMMIT')
+
+        
 
         return {
             success: true,
@@ -485,6 +516,7 @@ export async function deleteCredential(promiser, user_id, credential_id) {
         };
     } catch (error) {
         console.error('Error deleting credential:', error);
+        await executeQuery('ROLLBACK').catch(console.error);
         return {
             success: false,
             error: error.message,

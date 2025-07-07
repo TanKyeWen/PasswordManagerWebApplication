@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { RouterLink, useRouter } from 'vue-router';
     import { ref, onMounted } from 'vue'
-    import { fetchVaultData, getAllCredentials } from '@/db/credential_queries';
+    import { fetchVaultData, getAllCredentials, validateUserAccess } from '@/db/credential_queries';
 
     const router = useRouter();    
 
@@ -31,6 +31,12 @@
                     username: cred[2]      // third element is credential_username
                 }))
                 console.log('Mapped credentials:', credentials.value)
+            } else if (fetchedCredentials.code === 'NO_SESSION' || fetchedCredentials.code === 'ACCESS_DENIED') {
+                console.error('Unauthorized Access:', fetchedCredentials.error)
+                router.push('/signIn')
+            } else if (fetchedCredentials.code === 'NOT_FOUND') {
+                console.error('Credential not found:', fetchedCredentials.error)
+                router.push('/vault')
             } else {
                 console.error('Error fetching credentials:', fetchedCredentials.error)
             }
@@ -49,10 +55,6 @@
         loadVault()
     })
 
-    const lastSyncDate = ref([
-        { message: '19th February 2025' }
-    ])
-
     const syncBtnMsg = ref([
         { message: 'Sync Databases' },
         { message: 'Syncing...' }
@@ -68,11 +70,43 @@
             }, 3000)
     }
 
-    const redirectToIndividualPage = (credentialID : number) => {
-        router.push({
-            name:'credentialDetail',
-            params: { id: credentialID }
-        })
+    const redirectToIndividualPage = async (credentialID : number) => {
+        try {
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+
+            router.push({
+                name:'credentialDetail',
+                params: { id: credentialID }
+            })
+                
+        } catch (error) {
+            console.error('Error loading vault:', error)
+            if (error.response?.status === 401) {
+                router.push('/signIn')
+            }
+        }
+    }
+
+    const redirectToAddCredentialPage = async () => {
+        try {
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+        
+            router.push('/addCredential')
+                
+        } catch (error) {
+            console.error('Error loading vault:', error)
+            if (error.response?.status === 401) {
+                router.push('/signIn')
+            }
+        }
     }
 </script>
 
@@ -105,15 +139,10 @@
                     <button class="sync-btn" @click="syncClick">
                         {{ btnMsg }}
                     </button>
-                    <div class="sync-txt">
-                        Last Sync Date: {{ lastSyncDate[0].message }}
-                    </div>
                 </div>
-                <RouterLink to="/addCredential" active-class="active-link">
-                    <div class="add-credential-btn">
-                        Add Credential
-                    </div>
-                </RouterLink>
+                <div class="add-credential-btn" @click="redirectToAddCredentialPage">
+                    Add Credential
+                </div>
             </div>
         </main>
     </body>
