@@ -32,13 +32,10 @@
                     password: cred[3]
                 };
                 
-            } else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
+            } else if (fetchedCredential.code === 401 || fetchedCredential.code === 403) {
                 console.error('Unauthorized Access:', fetchedCredential.error)
                 router.push('/signIn')
-            } else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
-                console.error('Unauthorized Access:', fetchedCredential.error)
-                router.push('/signIn')
-            } else if (fetchedCredential.code === 'NOT_FOUND') {
+            } else if (fetchedCredential.code === 404) {
                 console.error('Credential not found:', fetchedCredential.error)
                 router.push('/vault')
             } else {
@@ -62,8 +59,8 @@
             const fetchedCredential = await deleteIndividualCredential(parseInt(userId), credentialId);
             if (fetchedCredential.success) {
                 console.log('Credential deleted successfully:', fetchedCredential.data);
-                router.push('/vault');
-            }  else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
+
+            } else if (fetchedCredential.code === 401 || fetchedCredential.code === 403) {
                 console.error('Unauthorized Access:', fetchedCredential.error)
                 router.push('/signIn')
             } else {

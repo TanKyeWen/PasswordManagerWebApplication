@@ -35,14 +35,14 @@ async function getCurrentUserId() {
 /**
  * Validate user access to credentials
  */
-export async function validateUserAccess(requestedUserId: number) {
+async function validateUserAccess(requestedUserId: number) {
     const sessionUserId = await getCurrentUserId()
 
     if (!sessionUserId) {
         return {
             valid: false,
             error: 'No valid session',
-            code: 'NO_SESSION'
+            code: 403
         }
     }
 
@@ -50,7 +50,7 @@ export async function validateUserAccess(requestedUserId: number) {
         return {
             valid: false,
             error: 'Access denied - user ID mismatch',
-            code: 'ACCESS_DENIED'
+            code: 401
         }
     }
 
@@ -63,8 +63,18 @@ export async function validateUserAccess(requestedUserId: number) {
 /**
  * Fetch vault data from API and store in local SQLite database
  */
-export async function fetchVaultData() {
+export async function fetchVaultData(user_id: number) {
     try {
+        // Validate user access
+        const accessCheck = await validateUserAccess(user_id)
+        if (!accessCheck.valid) {
+            return {
+                success: false,
+                error: accessCheck.error,
+                code: accessCheck.code
+            }
+        }
+
         // Fetch data from API with proper headers
         const response = await axios.get('/api/vault', {
             headers: {
@@ -136,7 +146,8 @@ export async function fetchVaultData() {
                 message: `Successfully synced ${insertedCount} vault items`,
                 insertedCount,
                 totalItems: vaultItems.length,
-                results
+                results,
+                code: 200
             }
             
         } catch (error) {
@@ -158,20 +169,20 @@ export async function fetchVaultData() {
                 return {
                     success: false,
                     error: 'Authentication required',
-                    code: 'UNAUTHORIZED',
+                    code: 401,
                     requiresLogin: true
                 }
             } else if (status === 403) {
                 return {
                     success: false,
                     error: 'Access denied',
-                    code: 'FORBIDDEN'
+                    code: 403
                 }
             } else {
                 return {
                     success: false,
                     error: message,
-                    code: 'SERVER_ERROR'
+                    code: 500
                 }
             }
         } else if (error.request) {
@@ -179,14 +190,14 @@ export async function fetchVaultData() {
             return {
                 success: false,
                 error: 'Network error - server unreachable',
-                code: 'NETWORK_ERROR'
+                code: 503
             }
         } else {
             // Other error
             return {
                 success: false,
                 error: error.message,
-                code: 'CLIENT_ERROR'
+                code: 502
             }
         }
     }
@@ -219,7 +230,8 @@ export async function getAllCredentials(userId: number) {
         
         return {
             success: true,
-            data: result.result.resultRows || []
+            data: result.result.resultRows || [],
+            code: 200
         }
 
     } catch (err) {
@@ -259,7 +271,7 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
 
         // Extract the actual rows from the result object
         const rows = result.result?.resultRows || [];
-        
+
         // Since we're getting a single credential, return the first item or null
         const credential = rows.length > 0 ? rows[0] : null;
         
@@ -269,15 +281,44 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
             return {
                 success: false,
                 error: 'Credential not found',
-                code: 'NOT_FOUND'
+                code: 404
             };
         }
 
-        return {
-            success: true,
-            data: credential,
-            found: credential !== null
-        };
+        try{
+            // Fetch data from API with proper headers
+            const response = await axios.get(`/api/credential/decrypt/${credential_id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                },
+                timeout: 10000, // 10 second timeout
+                withCredentials: true // Send session cookies
+            })
+
+            // Validate response structure
+            if (!response.data || !response.data.success) {
+                throw new Error(response.data?.error || 'Invalid response from server')
+            }
+
+            console.log('Credential Password Received:', response.data)
+
+            credential.credential_password = response.data.data?.decrypted_password || null;
+            
+            return {
+                success: true,
+                data: credential,
+                found: credential !== null,
+                code: 200
+            };
+        } catch (error) {
+            console.error('Error fetching credential password:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to fetch credential password',
+                code: 500
+            };
+        }
 
     } catch (error) {
         console.error('Error fetching individual credential:', error);
@@ -293,92 +334,180 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
 /**
  * Add a new credential for auth user
  */
-export async function addCredential(user_id, credential_id, updates) {
+export async function addCredential(user_id: number, updates: object) {
     // Input validation
-    if (!user_id || !credential_id || !updates || typeof updates !== 'object') {
+    if (!user_id || typeof user_id !== 'number' || user_id <= 0) {
         return {
             success: false,
-            error: 'Missing or invalid parameters',
-            code: 'INVALID_INPUT'
+            error: 'Invalid user_id: must be a positive number',
+            code: 406
+        };
+    }
+
+    if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+        return {
+            success: false,
+            error: 'Invalid updates: must be a non-null object',
+            code: 406
+        };
+    }
+
+    // Check if updates object is empty
+    if (Object.keys(updates).length === 0) {
+        return {
+            success: false,
+            error: 'Updates object cannot be empty',
+            code: 406
+        };
+    }
+
+    // Validate specific fields if they exist
+    const validFields = ['credential_website', 'credential_username', 'credential_password'];
+    const updateKeys = Object.keys(updates);
+    
+    // Check for invalid fields
+    const invalidFields = updateKeys.filter(key => !validFields.includes(key));
+    if (invalidFields.length > 0) {
+        return {
+            success: false,
+            error: `Invalid fields: ${invalidFields.join(', ')}. Allowed fields: ${validFields.join(', ')}`,
+            code: 406
         };
     }
 
     try {
-        // Check if credential exists
-        const checkResult = await promiser('exec', {
-            sql: `
-                SELECT id FROM credentials
-                WHERE user_id = ? AND id = ?
-            `,
-            bind: [user_id, credential_id],
-        });
-
-        if (checkResult.length > 0) {
+        // Validate user access
+        const accessCheck = await validateUserAccess(user_id)
+        if (!accessCheck.valid) {
             return {
                 success: false,
-                error: 'Credential found',
-                code: 'FOUND'
-            };
-        }
-
-        // Prepare add fields
-        const allowedFields = ['credential_website', 'credential_username', 'credential_password'];
-        const setClauses = [];
-        const bindValues = []; // Values for the SET clause
-
-        // Build dynamic SET clauses
-        for (const field of allowedFields) {
-            if (updates[field] !== undefined && updates[field] !== null) {
-                setClauses.push(`${field} = ?`);
-                bindValues.push(updates[field]);
+                error: accessCheck.error,
+                code: accessCheck.code
             }
         }
 
-        if (setClauses.length === 0) {
-            return {
-                success: false,
-                error: 'No valid fields to update',
-                code: 'INVALID_UPDATE'
-            };
+        // Fetch data from API with proper headers
+        const response = await axios.post('/api/credential', {
+            user_id: user_id,
+            ...updates
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+            },
+            timeout: 10000, // 10 second timeout
+            withCredentials: true // Send session cookies
+        })
+
+        // Validate response structure
+        if (!response.data || !response.data.success) {
+            throw new Error(response.data?.error || 'Invalid response from server')
         }
 
-        // add created_at field
-        setClauses.push('created_at = ?');
-        bindValues.push(new Date().toISOString());
+        console.log('Vault data received:', response.data)
 
-        // Add updated_at field
-        setClauses.push('updated_at = ?');
-        bindValues.push(new Date().toISOString());
-
-        // TODO: ADD CREDENTIAL ID CALL TO BACK END
-        // Execute update query
-        // Order: SET values first, then WHERE values
-        const finalBindValues = [...bindValues, user_id];
+        // Extract credentials array from response
+        const vaultItems = response.data.data || []
         
-        await promiser('exec', {
-            sql: `
-                INSERT INTO credentials
-                (user_id, id, ${setClauses.join(', ')})
-                VALUES (?, ?, ${setClauses.map(() => '?').join(', ')})
-            `,
-            bind: finalBindValues,
-        });
+        if (vaultItems.length === 0) {
+            return {
+                success: true,
+                message: 'No vault data retrieved',
+                insertedCount: 0
+            }
+        }
+        
+        // Start transaction
+        await executeQuery('BEGIN TRANSACTION')
+        
+        try {
+            // Check if credential exists
+            const checkResult = await executeQuery(`
+                    SELECT id FROM credentials
+                    WHERE user_id = ? AND credential_website = ? AND credential_username = ?
+                `,
+                [user_id, updates.credential_website, updates.credential_username],
+            );
 
-        return {
-            success: true,
-            message: 'Credential added successfully',
-            updatedFields: Object.keys(updates).filter(key => 
-                allowedFields.includes(key) && updates[key] !== undefined
-            )
-        };
+            if (checkResult.length > 0) {
+                return {
+                    success: false,
+                    error: 'Credential already exists for this user',
+                    code: 409
+                };
+            }
+
+            const insertSQL = `
+                INSERT INTO credentials (user_id, credential_website, credential_username, credential_password)
+                VALUES (?, ?, ?, ?)
+            `;
+
+            // Execute insert query
+            await executeQuery(insertSQL, [
+                vaultItems[0].id, // Use the ID from the response
+                user_id,
+                updates.credential_website.trim(),
+                updates.credential_username.trim(),
+                vaultItems[0].credential_password // Use the password from the response
+            ]);
+
+            return {
+                success: true,
+                message: 'Credential added successfully',
+                user: user_id,
+                code: 201,
+            };
+
+        } catch (error) {
+            await executeQuery('ROLLBACK').catch(console.error)
+            throw error
+        }
 
     } catch (error) {
-        console.error('Error add credential:', error);
-        return {
-            success: false,
-            error: error.message,
-            code: 'ADD_ERROR'
-        };
+        console.error('Error fetching vault data:', error)
+        
+        // Handle specific error types
+        if (error.response) {
+            // Server responded with error status
+            const status = error.response.status
+            const message = error.response.data?.error || 'Server error'
+            
+            if (status === 401) {
+                // Authentication required - redirect to login
+                return {
+                    success: false,
+                    error: 'Authentication required',
+                    code: 401,
+                    requiresLogin: true
+                }
+            } else if (status === 403) {
+                return {
+                    success: false,
+                    error: 'Access denied',
+                    code: 403
+                }
+            } else {
+                return {
+                    success: false,
+                    error: message,
+                    code: 500
+                }
+            }
+        } else if (error.request) {
+            // Network error
+            return {
+                success: false,
+                error: 'Network error - server unreachable',
+                code: 503
+            }
+        } else {
+            // Other error
+            return {
+                success: false,
+                error: error.message,
+                code: 502
+            }
+        }
     }
 }
 

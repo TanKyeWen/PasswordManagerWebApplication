@@ -16,11 +16,11 @@
                 router.push('/signIn')
                 return
             }
-        
-            const vaultData = await fetchVaultData()
+
+            const vaultData = await fetchVaultData(parseInt(userId))
             console.log('Vault data loaded:', vaultData)
         
-            const fetchedCredentials = await getAllCredentials(userId)
+            const fetchedCredentials = await getAllCredentials(parseInt(userId))
             console.log('Raw fetchedCredentials:', fetchedCredentials)
             
             if (fetchedCredentials.success) {
@@ -31,12 +31,9 @@
                     username: cred[2]      // third element is credential_username
                 }))
                 console.log('Mapped credentials:', credentials.value)
-            } else if (fetchedCredentials.code === 'NO_SESSION' || fetchedCredentials.code === 'ACCESS_DENIED') {
+            } else if (fetchedCredentials.code === 401 || fetchedCredentials.code === 403) {
                 console.error('Unauthorized Access:', fetchedCredentials.error)
                 router.push('/signIn')
-            } else if (fetchedCredentials.code === 'NOT_FOUND') {
-                console.error('Credential not found:', fetchedCredentials.error)
-                router.push('/vault')
             } else {
                 console.error('Error fetching credentials:', fetchedCredentials.error)
             }
