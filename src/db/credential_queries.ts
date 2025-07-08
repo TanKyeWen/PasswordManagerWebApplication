@@ -303,8 +303,8 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
 
             console.log('Credential Password Received:', response.data)
 
-            credential.credential_password = response.data.data?.decrypted_password || null;
-            
+            credential[3] = response.data.data?.decrypted_password || null;
+
             return {
                 success: true,
                 data: credential,
@@ -334,7 +334,7 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
 /**
  * Add a new credential for auth user
  */
-export async function addCredential(user_id: number, updates: object) {
+export async function addCredential(user_id: number, credential: object) {
     // Input validation
     if (!user_id || typeof user_id !== 'number' || user_id <= 0) {
         return {
@@ -344,29 +344,29 @@ export async function addCredential(user_id: number, updates: object) {
         };
     }
 
-    if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+    if (!credential || typeof credential !== 'object' || Array.isArray(credential)) {
         return {
             success: false,
-            error: 'Invalid updates: must be a non-null object',
+            error: 'Invalid credential: must be a non-null object',
             code: 406
         };
     }
 
-    // Check if updates object is empty
-    if (Object.keys(updates).length === 0) {
+    // Check if credential object is empty
+    if (Object.keys(credential).length === 0) {
         return {
             success: false,
-            error: 'Updates object cannot be empty',
+            error: 'Credential object cannot be empty',
             code: 406
         };
     }
 
     // Validate specific fields if they exist
     const validFields = ['credential_website', 'credential_username', 'credential_password'];
-    const updateKeys = Object.keys(updates);
+    const credentialKeys = Object.keys(credential);
     
     // Check for invalid fields
-    const invalidFields = updateKeys.filter(key => !validFields.includes(key));
+    const invalidFields = credentialKeys.filter(key => !validFields.includes(key));
     if (invalidFields.length > 0) {
         return {
             success: false,
@@ -389,7 +389,7 @@ export async function addCredential(user_id: number, updates: object) {
         // Fetch data from API with proper headers
         const response = await axios.post('/api/credential', {
             user_id: user_id,
-            ...updates
+            ...credential
         }, {
             headers: {
                 'Content-Type': 'application/json',
@@ -407,13 +407,13 @@ export async function addCredential(user_id: number, updates: object) {
         console.log('Vault data received:', response.data)
 
         // Extract credentials array from response
-        const vaultItems = response.data.data || []
+        const vaultData = response.data.data || []
         
-        if (vaultItems.length === 0) {
+        if (!vaultData || !vaultData.credential_id) {
             return {
-                success: true,
-                message: 'No vault data retrieved',
-                insertedCount: 0
+                success: false,
+                error: 'Invalid response: missing credential data',
+                code: 500
             }
         }
         
@@ -426,7 +426,7 @@ export async function addCredential(user_id: number, updates: object) {
                     SELECT id FROM credentials
                     WHERE user_id = ? AND credential_website = ? AND credential_username = ?
                 `,
-                [user_id, updates.credential_website, updates.credential_username],
+                [user_id, credential.credential_website, credential.credential_username],
             );
 
             if (checkResult.length > 0) {
@@ -438,18 +438,22 @@ export async function addCredential(user_id: number, updates: object) {
             }
 
             const insertSQL = `
-                INSERT INTO credentials (user_id, credential_website, credential_username, credential_password)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO credentials (id, user_id, credential_website, credential_username, credential_password)
+                VALUES (?, ?, ?, ?, ?)
             `;
 
             // Execute insert query
             await executeQuery(insertSQL, [
-                vaultItems[0].id, // Use the ID from the response
+                vaultData.new_credential_id, // Use the ID from the response
                 user_id,
-                updates.credential_website.trim(),
-                updates.credential_username.trim(),
-                vaultItems[0].credential_password // Use the password from the response
+                credential.credential_website.trim(),
+                credential.credential_username.trim(),
+                vaultData.encrypted_password // Use the password from the response
             ]);
+
+            await executeQuery('COMMIT')
+
+            console.log(`Credential ${vaultData.new_credential_id} added for user ${user_id}`); 
 
             return {
                 success: true,
@@ -464,7 +468,7 @@ export async function addCredential(user_id: number, updates: object) {
         }
 
     } catch (error) {
-        console.error('Error fetching vault data:', error)
+        console.error('Error fetching add data:', error)
         
         // Handle specific error types
         if (error.response) {

@@ -2,7 +2,9 @@
     import PassphraseView from '@/components/PassphraseView.vue';
     import RandomPassView from '@/components/RandomPassView.vue';
     import repeatImg from '@/assets/repeat_img.png';
+    import { useRouter, RouterLink } from 'vue-router';
     import { ref } from 'vue';
+    import { addCredential } from '@/db/credential_queries';
     
     const currentComponent = ref('PassphraseView');
     const tabs = {
@@ -10,7 +12,61 @@
         RandomPassView,
     }
 
-    
+    const router = useRouter();
+    const credential = ref({});
+
+    const website = ref('');
+    const username = ref('');
+    const password = ref('');
+
+    const handleAddCredential = async () => {
+        if (!website.value.trim()) {
+            alert('Website name is required');
+            return;
+        }
+        if (!username.value.trim()) {
+            alert('Username is required');
+            return;
+        }
+        if (!password.value.trim()) {
+            alert('Password is required');
+            return;
+        }
+        
+        credential.value = {
+            credential_website: website.value,
+            credential_username: username.value,
+            credential_password: password.value
+        };
+        
+        try{
+            const userId = localStorage.getItem('user_id');
+            if (!userId) {
+                router.push('/signIn');
+                return;
+            }
+
+            const result = await addCredential(parseInt(userId), credential.value);
+            if (result.success) {
+                website.value = '';
+                username.value = '';
+                password.value = '';
+
+                router.push('/vault');
+                console.log('Credential added successfully');
+            } else if (result.code === 401 || result.code === 403) {
+                console.error('Unauthorized Access:', result.error)
+                router.push('/signIn')
+            } else if (result.code === 404) {
+                console.error('Credential not found:', result.error)
+                router.push('/vault')
+            } else {
+                console.log(`Error adding credential: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error adding credential:', error);
+        }
+    }
 
 </script>
 <template>
@@ -24,16 +80,16 @@
                     <div class="header-txt">Item Details</div>
                     <div class="item-details">
                         <div class="field-name">Website Name</div>
-                        <input type="text" name="website-name-field" class="website-name-field" placeholder="Google.com"><br>
+                        <input type="text" name="website-name-field" class="website-name-field" v-model="website" placeholder="Google.com"><br>
                     </div>
                     <div class="header-txt">Login Credential</div>
                     <div class="login-credential">
                         <div class="field-name">Username</div>
-                        <input type="text" name="username" class="username" placeholder="Username" required><br>
+                        <input type="text" name="username" class="username" v-model="username" placeholder="Username" required><br>
                         <div class="line"></div>
                         <div class="field-name">Password</div>
                         <div class="password-field">
-                            <input type="text" name="password" class="password" placeholder="Password" required><br>
+                            <input type="text" name="password" class="password" v-model="password" placeholder="Password" required><br>
                         </div>
                     </div>
                 </div>
@@ -56,11 +112,9 @@
                 <component :is="tabs[currentComponent]" />
             </div>
             <div class="action-section">
-                <RouterLink to="/vault" active-class="active-link">
-                    <div class="add-credential-btn">
-                        Add Credential
-                    </div>
-                </RouterLink>
+                <div class="add-credential-btn" @click="handleAddCredential">
+                    Add Credential
+                </div>
                 <RouterLink to="/vault" active-class="active-link">
                     <div class="back-btn">
                         Cancel

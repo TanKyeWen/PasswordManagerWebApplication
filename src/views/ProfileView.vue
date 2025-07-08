@@ -40,6 +40,7 @@
         
         // Clear localStorage if you're storing user data there
         localStorage.removeItem('user_id');
+        localStorage.clear();
         
         // Clear sessionStorage if you're using it
         sessionStorage.removeItem('user');

@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { useRouter, RouterLink } from 'vue-router'
     import axios from 'axios'
-    import { ref } from 'vue'
+    import { onMounted, ref } from 'vue'
     axios.defaults.baseURL = 'http://localhost:9011'
 
     const router = useRouter()
@@ -10,6 +10,11 @@
     const email = ref('')
     const password = ref('')
     const rePassword = ref('')
+
+    onMounted(() => {
+        // Clear localStorage on component mount
+        localStorage.clear();
+    });
 
     // Function to handle user signup
     async function signup(username, email, password, rePassword) {
@@ -31,6 +36,7 @@
             );
             
             console.log('Signup successful:', response.data);
+            localStorage.clear();
             localStorage.setItem('user_id', response.data.user.user_id);
             return response.data;
             

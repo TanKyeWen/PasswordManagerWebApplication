@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { RouterLink, useRouter } from 'vue-router';
     import { ref, onMounted } from 'vue'
-    import { fetchVaultData, getAllCredentials, validateUserAccess } from '@/db/credential_queries';
+    import { fetchVaultData, getAllCredentials } from '@/db/credential_queries';
 
     const router = useRouter();    
 
