@@ -33,10 +33,10 @@
                 };
                 
             } else if (fetchedCredential.code === 401 || fetchedCredential.code === 403) {
-                console.error('Unauthorized Access:', fetchedCredential.error)
+                console.log('Unauthorized Access:', fetchedCredential.error)
                 router.push('/signIn')
             } else if (fetchedCredential.code === 404) {
-                console.error('Credential not found:', fetchedCredential.error)
+                console.log('Credential not found:', fetchedCredential.error)
                 router.push('/vault')
             } else {
                 console.error('Error fetching credentials:', fetchedCredential.error)
