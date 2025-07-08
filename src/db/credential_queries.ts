@@ -250,15 +250,20 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
                 id,
                 credential_website,
                 credential_username,
-                credential_password,
+                credential_password
             FROM credentials
             WHERE user_id = ? AND id = ?
             LIMIT 1
             `, [user_id, credential_id]
         );
 
+        // Extract the actual rows from the result object
+        const rows = result.result?.resultRows || [];
+        
         // Since we're getting a single credential, return the first item or null
-        const credential = result && result.length > 0 ? result[0] : null;
+        const credential = rows.length > 0 ? rows[0] : null;
+        
+        console.log('Fetched individual credential:', credential);
 
         if (!credential) {
             return {
@@ -467,7 +472,7 @@ export async function updateCredential(promiser, user_id, credential_id, updates
 /**
  * Delete a credential for auth user
  */
-export async function deleteCredential(user_id: number, credential_id: number) {
+export async function deleteIndividualCredential(user_id: number, credential_id: number) {
     try {
          // Validate user access
         const accessCheck = await validateUserAccess(user_id)
@@ -508,12 +513,37 @@ export async function deleteCredential(user_id: number, credential_id: number) {
 
         await executeQuery('COMMIT')
 
-        
+        console.log(`Credential ${credential_id} deleted for user ${user_id}`);        
 
-        return {
-            success: true,
-            message: 'Credential deleted successfully'
-        };
+        try {
+            const response = await axios.delete(`/api/credential/${credential_id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                },
+                timeout: 10000, // 10 second timeout
+                withCredentials: true // Send session cookies
+            });
+
+            return response.data;
+            
+        } catch (error) {
+            if (error.response) {
+            // Server responded with error status
+            const errorMessage = error.response.data?.error || 'Failed to delete credential';
+            throw new Error(errorMessage);
+            } else if (error.request) {
+                // Network error
+                throw new Error('Network error - please check your connection');
+            } else if (error.code === 'ECONNABORTED') {
+                // Timeout error
+                throw new Error('Request timeout');
+            } else {
+                // Other error
+                throw new Error(error.message || 'Unknown error occurred');
+            }
+        }
+
     } catch (error) {
         console.error('Error deleting credential:', error);
         await executeQuery('ROLLBACK').catch(console.error);

@@ -1,14 +1,14 @@
-<script lang="ts">
+<script setup lang="ts">
     import { ref, onMounted } from 'vue';
     import { useRouter, useRoute, RouterLink } from 'vue-router';
     import ConfirmModal from '@/components/ConfirmModal.vue';
-    import { getIndividualCredential } from '@/db/credential_queries';
+    import { getIndividualCredential, deleteIndividualCredential } from '@/db/credential_queries';
 
     const router = useRouter();
     const route = useRoute();    
 
     const loading = ref(false)
-    const credential = ref([])
+    const credential = ref({})
     const credentialId = Array.isArray(route.params.id) 
         ? parseInt(route.params.id[0]) 
         : parseInt(route.params.id);
@@ -22,14 +22,19 @@
                 return
             }
 
-            const fetchedCredential = await getIndividualCredential(parseInt(userId), parseInt(route.params.id));
+            const fetchedCredential = await getIndividualCredential(parseInt(userId), credentialId);
             if (fetchedCredential.success) {
-                credential.value = fetchedCredential.data.map(cred => ({
+                const cred = fetchedCredential.data;
+                credential.value = {
                     id: cred[0],
                     website: cred[1],
                     username: cred[2],
                     password: cred[3]
-                }))
+                };
+                
+            } else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
+                console.error('Unauthorized Access:', fetchedCredential.error)
+                router.push('/signIn')
             } else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
                 console.error('Unauthorized Access:', fetchedCredential.error)
                 router.push('/signIn')
@@ -54,20 +59,13 @@
                 return
             }
 
-            const fetchedCredential = await getIndividualCredential(parseInt(userId), credentialId);
+            const fetchedCredential = await deleteIndividualCredential(parseInt(userId), credentialId);
             if (fetchedCredential.success) {
-                credential.value = fetchedCredential.data.map(cred => ({
-                    id: cred[0],
-                    website: cred[1],
-                    username: cred[2],
-                    password: cred[3]
-                }))
+                console.log('Credential deleted successfully:', fetchedCredential.data);
+                router.push('/vault');
             }  else if (fetchedCredential.code === 'NO_SESSION' || fetchedCredential.code === 'ACCESS_DENIED') {
                 console.error('Unauthorized Access:', fetchedCredential.error)
                 router.push('/signIn')
-            } else if (fetchedCredential.code === 'NOT_FOUND') {
-                console.error('Credential not found:', fetchedCredential.error)
-                router.push('/vault')
             } else {
                 console.error('Error fetching credentials:', fetchedCredential.error)
             }
@@ -142,7 +140,7 @@
                     <div class="line"></div>
                     <div class="field-name">Password</div>
                     <div class="password">
-                        password1test
+                        {{ credential.password }}
                     </div>
                 </div>
             </div>
