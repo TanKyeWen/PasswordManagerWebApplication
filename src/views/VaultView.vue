@@ -32,7 +32,7 @@
                 }))
                 console.log('Mapped credentials:', credentials.value)
             } else if (fetchedCredentials.code === 401 || fetchedCredentials.code === 403) {
-                console.error('Unauthorized Access:', fetchedCredentials.error)
+                console.log('Unauthorized Access:', fetchedCredentials.error)
                 router.push('/signIn')
             } else {
                 console.error('Error fetching credentials:', fetchedCredentials.error)

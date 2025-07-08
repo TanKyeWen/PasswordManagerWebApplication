@@ -61,7 +61,7 @@
                 console.log('Credential deleted successfully:', fetchedCredential.data);
 
             } else if (fetchedCredential.code === 401 || fetchedCredential.code === 403) {
-                console.error('Unauthorized Access:', fetchedCredential.error)
+                console.log('Unauthorized Access:', fetchedCredential.error)
                 router.push('/signIn')
             } else {
                 console.error('Error fetching credentials:', fetchedCredential.error)

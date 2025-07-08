@@ -55,10 +55,10 @@
                 router.push('/vault');
                 console.log('Credential added successfully');
             } else if (result.code === 401 || result.code === 403) {
-                console.error('Unauthorized Access:', result.error)
+                console.log('Unauthorized Access:', result.error)
                 router.push('/signIn')
             } else if (result.code === 404) {
-                console.error('Credential not found:', result.error)
+                console.log('Credential not found:', result.error)
                 router.push('/vault')
             } else {
                 console.log(`Error adding credential: ${result.error}`);
