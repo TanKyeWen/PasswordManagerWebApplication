@@ -3,18 +3,11 @@
     import repeatImg from '@/assets/repeat_img.png';
     import { ref } from 'vue';
 
-    let selectedWordList = ref('Default');
-    const wordListOpt = ref([
-        {
-            value: 'Default', text: 'Default',
-        },
-        {
-            value: 'EngineerJargon', text: 'Engineer Jargon'
-        },
-        {
-            value: 'Soup', text: 'Soup'
-        }
-    ])
+    const noWords = ref(3);
+    const cap = ref(false);
+    const nonCap = ref(false);
+    const specialChar = ref(false);
+    
 </script>
 
 <template>
@@ -33,34 +26,24 @@
             <div class="pass-length">
                 <div class="min-length-opt">
                     Passphrase Words =
-                    <input type="number" value="3">
+                    <input type="number" value="3" v-model="noWords">
                 </div>
             </div>
             <div class="pass-symbols">
                 <div class="symbol-txt">Include</div>
                 <div class="symbol-container">
                     <div class="individual-symbol">
-                        <input type="checkbox" name="cap" id="cap" value="A-Z">
+                        <input type="checkbox" name="cap" id="cap" value="A-Z" v-model="cap">
                         <div class="individual-txt">A-Z</div>
                     </div>
                     <div class="individual-symbol">
-                        <input type="checkbox" name="non-cap" id="non-cap" value="a-z">
+                        <input type="checkbox" name="non-cap" id="non-cap" value="a-z" v-model="nonCap">
                         <div class="individual-txt">a-z</div>
                     </div>
                     <div class="individual-symbol">
-                        <input type="checkbox" name="special-char" id="special-char" value="!@#$">
+                        <input type="checkbox" name="special-char" id="special-char" value="!@#$" v-model="specialChar">
                         <div class="individual-txt">!@#$%</div>
                     </div>
-                </div>
-            </div>
-            <div class="word-list">
-                <div class="word-list-txt">Word list</div>
-                <div class="selection">
-                    <select v-model="selectedWordList">
-                        <option v-for="wordList in wordListOpt" :key="wordList.value" :value="wordList.value">
-                            {{ wordList.text }}
-                        </option>
-                    </select>
                 </div>
             </div>
         </div>  

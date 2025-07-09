@@ -106,7 +106,7 @@
 
             router.push({
                 name:'editCredential',
-                params: { id: credentialId }
+                query: { id: credentialId }
             })
                 
         } catch (error) {

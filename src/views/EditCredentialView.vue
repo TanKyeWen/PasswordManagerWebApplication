@@ -1,8 +1,9 @@
 <script setup lang="ts">
     import PassphraseView from '@/components/PassphraseView.vue';
     import RandomPassView from '@/components/RandomPassView.vue';
-    import { ref } from 'vue';
-    import { useRoute, RouterLink } from 'vue-router';
+    import { onMounted, ref } from 'vue';
+    import { useRoute, useRouter, RouterLink } from 'vue-router';
+    import { updateCredential, getIndividualCredential } from '@/db/credential_queries';
     
     const currentComponent = ref('PassphraseView');
     const tabs = {
@@ -10,65 +11,101 @@
         RandomPassView,
     };
 
-    const credentials = ref([
-    {
-            id: 1,
-            website: 'Google.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 2,
-            website: 'huahu.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 3,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 4,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 5,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 6,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 7,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 8,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 9,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-        {
-            id: 10,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-        },
-    ]);
-
+    const router = useRouter();
     const route = useRoute();
-    const credentialId = route.query.id;
 
-    const credential = ref(null);
-    if (credentialId) {
-        credential.value = credentials.value.find(c => c.id === parseInt(credentialId[0]));
+    const loading = ref(false)
+    const credential = ref({})
+    const updatedCredential = ref({});
+    const credentialId = Array.isArray(route.query.id) 
+        ? parseInt(route.query.id[0]) 
+        : parseInt(route.query.id);
+    const userId = localStorage.getItem('user_id')
+    const website = ref('');
+    const username = ref('');
+    const password = ref('');
+
+    async function loadCredential() {
+        loading.value = true
+        try {
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+
+            const fetchedCredential = await getIndividualCredential(parseInt(userId), credentialId);
+            if (fetchedCredential.success) {
+                const cred = fetchedCredential.data;
+                website.value = cred[1];
+                username.value = cred[2];
+                password.value = cred[3];
+                
+            } else if (fetchedCredential.code === 401 || fetchedCredential.code === 403) {
+                console.log('Unauthorized Access:', fetchedCredential.error)
+                router.push('/signIn')
+            } else if (fetchedCredential.code === 404) {
+                console.log('Credential not found:', fetchedCredential.error)
+                router.push('/vault')
+            } else {
+                console.error('Error fetching credentials:', fetchedCredential.error)
+            }
+        } catch (error) {
+            console.error('Error loading credentials:', error)
+        } finally {
+            loading.value = false
+        }
+    }
+
+    onMounted(() => {
+        loadCredential();
+    });
+
+    const handleUpdateCredential = async () => {
+        if (!website.value.trim()) {
+            alert('Website name is required');
+            return;
+        }
+        if (!username.value.trim()) {
+            alert('Username is required');
+            return;
+        }
+        if (!password.value.trim()) {
+            alert('Password is required');
+            return;
+        }
+        
+        updatedCredential.value = {
+            credential_website: website.value,
+            credential_username: username.value,
+            credential_password: password.value
+        };
+        
+        try{
+            if (!userId) {
+                router.push('/signIn');
+                return;
+            }
+
+            const result = await updateCredential(parseInt(userId), credentialId, updatedCredential.value);
+            if (result.success) {
+                website.value = '';
+                username.value = '';
+                password.value = '';
+
+                router.push('/vault');
+                console.log('Credential updated successfully');
+            } else if (result.code === 401 || result.code === 403) {
+                console.log('Unauthorized Access:', result.error)
+                router.push('/signIn')
+            } else if (result.code === 404) {
+                console.log('Credential not found:', result.error)
+                router.push('/vault')
+            } else {
+                console.log(`Error updating credential: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error updating credential:', error);
+        }
     }
 
 </script>
@@ -83,15 +120,15 @@
                     <div class="header-txt">Item Details</div>
                     <div class="item-details">
                         <div class="field-name">Item Name</div>
-                        <input type="text" name="website-name-field" class="website-name-field" :value="credential.website"><br>
+                        <input type="text" name="website-name-field" class="website-name-field" v-model="website"><br>
                     </div>
                     <div class="header-txt">Login Credential</div>
                     <div class="login-credential">
                         <div class="field-name">Username</div>
-                        <input type="text" name="username" class="username" :value="credential.username" required><br>
+                        <input type="text" name="username" class="username" v-model="username" required><br>
                         <div class="line"></div>
                         <div class="field-name">Password</div>
-                        <input type="text" name="password" class="password" value="password1test" required><br>
+                        <input type="text" name="password" class="password" v-model="password" required><br>
                     </div>
                 </div>
             </div>
@@ -113,11 +150,9 @@
                 <component :is="tabs[currentComponent]" />
             </div>
             <div class="action-section">
-                <RouterLink to="/vault" active-class="active-link">
-                    <div class="edit-credential-btn">
-                        Save Credential
-                    </div>
-                </RouterLink>
+                <div class="edit-credential-btn" @click="handleUpdateCredential">
+                    Save Credential
+                </div>
                 <RouterLink to="/vault" active-class="active-link">
                     <div class="back-btn">
                         Cancel

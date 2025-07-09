@@ -1,6 +1,14 @@
 <script setup lang="ts">
     import copyImg from '@/assets/copy_img.png';
     import repeatImg from '@/assets/repeat_img.png';
+    import { ref } from 'vue';
+
+    const minLength = ref(8);
+    const maxLength = ref(16);
+    const cap = ref(false);
+    const nonCap = ref(false);
+    const specialChar = ref(false);
+
 </script>
 
 <template>
@@ -19,26 +27,26 @@
             <div class="pass-length">
                 <div class="min-length-opt">
                     Min Password Length =
-                    <input type="number" value="8">
+                    <input type="number" value="8" v-model="minLength">
                 </div>
                 <div class="max-length-opt">
                     Max Password Length =
-                    <input type="number" value="12">
+                    <input type="number" value="12" v-model="maxLength">
                 </div>
             </div>
             <div class="pass-symbols">
                 <div class="symbol-txt">Include</div>
                 <div class="symbol-container">
                     <div class="individual-symbol">
-                        <input type="checkbox" name="cap" id="cap" value="A-Z">
+                        <input type="checkbox" name="cap" id="cap" value="A-Z" v-model="cap">
                         <div class="individual-txt">A-Z</div>
                     </div>
                     <div class="individual-symbol">
-                        <input type="checkbox" name="non-cap" id="non-cap" value="a-z">
+                        <input type="checkbox" name="non-cap" id="non-cap" value="a-z" v-model="nonCap">
                         <div class="individual-txt">a-z</div>
                     </div>
                     <div class="individual-symbol">
-                        <input type="checkbox" name="special-char" id="special-char" value="!@#$">
+                        <input type="checkbox" name="special-char" id="special-char" value="!@#$" v-model="specialChar">
                         <div class="individual-txt">!@#$%</div>
                     </div>
                 </div>
