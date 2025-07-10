@@ -1,13 +1,111 @@
 <script setup lang="ts">
     import copyImg from '@/assets/copy_img.png';
     import repeatImg from '@/assets/repeat_img.png';
-    import { ref } from 'vue';
+    import { computed, onMounted, ref, watch } from 'vue';
+    import axios from 'axios';
 
     const minLength = ref(8);
     const maxLength = ref(16);
-    const cap = ref(false);
-    const nonCap = ref(false);
-    const specialChar = ref(false);
+    const cap = ref(true);
+    const nonCap = ref(true);
+    const specialChar = ref(true);
+    let password = ref('');
+
+    // Computed property to check if only one checkbox is selected
+    const isLastChecked = computed(() => {
+        const checkedCount = [cap.value, nonCap.value, specialChar.value].filter(Boolean).length
+        return checkedCount === 1
+    })
+
+    const loadPassword = async () => {
+        try {
+            const { data } = await axios.get('/api/generate-password', {
+                params: {
+                    method: 'default',
+                    minLength: minLength.value,
+                    maxLength: maxLength.value,
+                    cap: cap.value,
+                    nonCap: nonCap.value,
+                    specialChar: specialChar.value
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000,
+                withCredentials: true
+            });
+            
+            password.value = data.success ? data.data.password : '';
+        } catch (error) {
+            console.error('Error generating password:', error);
+            console.error('Server response:', error.response?.data);
+            console.error('Response status:', error.response?.status);
+            console.error('Response headers:', error.response?.headers);
+            console.error('Request params:', error.config?.params);
+            password.value = '';
+        }
+    };
+
+    onMounted(() => {
+        // Load the initial password when the component is mounted
+        loadPassword();
+    });
+
+    const handlePasswordReload = () => {
+        // Logic to regenerate the password based on the options selected
+        loadPassword();
+    };
+
+    // Debounce function to prevent too many API calls
+    let debounceTimer;
+    const debouncedLoadPassword = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            loadPassword();
+        }, 300); // Wait 300ms after last change
+    };
+
+    // Watch each variable individually
+    watch(minLength, debouncedLoadPassword);
+    watch(maxLength, debouncedLoadPassword);
+    watch(cap, debouncedLoadPassword);
+    watch(nonCap, debouncedLoadPassword);
+    watch(specialChar, debouncedLoadPassword);
+
+    const toggleCap = () => {
+        if (isLastChecked.value && cap.value) {
+            return; // Don't toggle if it's the last checked one
+        }
+        cap.value = !cap.value;
+    };
+
+    const toggleNonCap = () => {
+        if (isLastChecked.value && nonCap.value) {
+            return; // Don't toggle if it's the last checked one
+        }
+        nonCap.value = !nonCap.value;
+    };
+
+    const toggleSpecialChar = () => {
+        if (isLastChecked.value && specialChar.value) {
+            return; // Don't toggle if it's the last checked one
+        }
+        specialChar.value = !specialChar.value;
+    };
+
+    const copyToClipboard = async (text: string) => {
+        try {
+            if (!navigator.clipboard) {
+                throw new Error('Clipboard API not supported');
+            }
+            await navigator.clipboard.writeText(text);
+            console.log('Copied to clipboard:', text);
+            
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
 
 </script>
 
@@ -15,11 +113,11 @@
     <body id="passphrase-container">
         <div class="pass-display">
             <div class="pass-txt">
-                p@s5w0rdt3s7
+                {{ password }}
             </div>
             <div class="img-container">
-                <img :src="repeatImg" alt="" style="height: 25px; width: 25px;"/>
-                <img :src="copyImg" alt="" style="height: 25px; width: 25px;"/>
+                <img @click="handlePasswordReload" :src="repeatImg" alt="" style="height: 25px; width: 25px;"/>
+                <img @click="copyToClipboard" :src="copyImg" alt="" style="height: 25px; width: 25px;"/>
             </div>
         </div>     
         <div class="opt">
@@ -27,27 +125,30 @@
             <div class="pass-length">
                 <div class="min-length-opt">
                     Min Password Length =
-                    <input type="number" value="8" v-model="minLength">
+                    <input type="number" v-model="minLength">
                 </div>
                 <div class="max-length-opt">
                     Max Password Length =
-                    <input type="number" value="12" v-model="maxLength">
+                    <input type="number" v-model="maxLength">
                 </div>
             </div>
             <div class="pass-symbols">
                 <div class="symbol-txt">Include</div>
                 <div class="symbol-container">
-                    <div class="individual-symbol">
-                        <input type="checkbox" name="cap" id="cap" value="A-Z" v-model="cap">
+                    <div class="individual-symbol" @click="toggleCap">
+                        <input type="checkbox" name="cap" id="cap" value="A-Z" v-model="cap"
+                            :disabled="isLastChecked && cap">
                         <div class="individual-txt">A-Z</div>
                     </div>
-                    <div class="individual-symbol">
-                        <input type="checkbox" name="non-cap" id="non-cap" value="a-z" v-model="nonCap">
+                    <div class="individual-symbol" @click="toggleNonCap">
+                        <input type="checkbox" name="nonCap" id="nonCap" value="a-z" v-model="nonCap"
+                            :disabled="isLastChecked && nonCap">
                         <div class="individual-txt">a-z</div>
                     </div>
-                    <div class="individual-symbol">
-                        <input type="checkbox" name="special-char" id="special-char" value="!@#$" v-model="specialChar">
-                        <div class="individual-txt">!@#$%</div>
+                    <div class="individual-symbol" @click="toggleSpecialChar">
+                        <input type="checkbox" name="specialChar" id="specialChar" value="!@#" v-model="specialChar"
+                            :disabled="isLastChecked && specialChar">
+                        <div class="individual-txt">!@#$%^&*</div>
                     </div>
                 </div>
             </div>
@@ -60,7 +161,7 @@
         font-family: 'Montserrat', sans-serif;
         background-color: inherit;
         color: #DFD5C3;
-        margin-left: 200px;
+        /* margin-left: 200px; */
     }
     .pass-display{
         font-size: 25px;
@@ -71,6 +172,26 @@
         max-width: 450px;
         display: flex;
         justify-content: space-between;
+    }
+    .pass-txt{
+        flex: 1; /* Take up remaining space */
+        overflow-x: auto; /* Horizontal scroll for long passwords */
+        overflow-y: hidden; /* Prevent vertical scroll */
+        white-space: nowrap; /* Prevent text wrapping */
+        padding: 4px 8px;
+        font-family: monospace; /* Better for passwords */
+        font-size: 25px;
+        min-width: 0; /* Allow flexbox to shrink below content size */
+        
+        /* Custom scrollbar styling (optional) */
+        scrollbar-width: thin;
+        scrollbar-color: #888 #f1f1f1;
+    }
+    .img-container{
+        margin-top: 10px;
+        display: flex;
+        gap: 8px; /* Space between images */
+        flex-shrink: 0; /* Prevent images from shrinking */
     }
     img{
         margin-right: 10px;

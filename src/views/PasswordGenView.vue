@@ -9,6 +9,14 @@
         PassphraseView,
         RandomPassView,
     }
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            console.log('Copied to clipboard:', text);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    };
 </script>
 
 <template>
@@ -29,17 +37,8 @@
                         Passphrase
                     </div>
                 </div>
-                <component :is="tabs[currentComponent]" />
-            </div>
-            <div class="history-container">
-                <div class="history-header-txt">Password History</div>
-                <div class="individual-history-container" v-for="n in 3" :key="n">
-                    <div class="pass-txt">
-                        123123
-                    </div>
-                    <div class="img-container">
-                        <img :src="copyImg" alt="" style="height: 25px; width: 25px;"/>
-                    </div>
+                <div class="component-container">
+                    <component :is="tabs[currentComponent]" />
                 </div>
             </div>
         </main>
@@ -49,17 +48,18 @@
 <style scoped>
     #pass-gen-page{
         font-family: 'Montserrat', sans-serif;
+    }
+    main{
         border-radius: 25px;
         background-color: #593939;
         color: #DFD5C3;
-        margin: 10px;
-        padding: 25px;
-        height: calc(100% - 35px);
-        width: calc(100% - 40px);
+        height: fit-content;
+        width: fit-content;
         box-sizing: border-box;
-    }
-    main{
-        display: flex;
+        margin-left: 575px;
+        margin-top: 50px;
+        font-size: 25px;
+        padding: 15px;
     }
     .gen-container{
         flex: 1;
@@ -91,30 +91,16 @@
         border-bottom-right-radius: 25px;
         text-align: left;
     }
-    /* .random-password-btn.active, .passphrase-password-btn.active { */
+    .component-container {
+        justify-content: center;
+        align-items: center;
+        max-height: 650px;
+        padding: 20px; /* Optional: add some padding */
+    }
     .active{
         background-color: #8F7E6A !important;
         color: #503333 !important;
         font-weight: bold;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-    .history-container{
-        flex: 1;
-    }
-    .history-header-txt{
-        justify-content: center;
-        font-size: 30px;
-        padding-bottom: 25px;
-    }
-    .individual-history-container{
-        font-size: 25px;
-        border-radius: 5px;
-        background-color: #503333;
-        padding: 10px 10px 10px 20px;
-        box-shadow: 2px;
-        max-width: 450px;
-        margin-bottom: 15px;
-        display: flex;
-        justify-content: space-between;
     }
 </style>
