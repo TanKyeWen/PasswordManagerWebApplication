@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ref } from 'vue'
 import { useSQLite } from '@/composables/useSQLite'
+import { addActivity, addActivityCred } from '@/audittrail/queries'
 
 const { isLoading, error, executeQuery } = useSQLite()
 
@@ -90,6 +91,7 @@ export async function fetchVaultData(user_id: number) {
             throw new Error(response.data?.error || 'Invalid response from server')
         }
 
+        addActivity(user_id, 'Fetch Vault Data')
         console.log('Vault data received:', response.data)
 
         // Extract credentials array from response
@@ -263,7 +265,9 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
         `, [credential_id]);
 
         // Check if the credential exists and belongs to the user
-        if (parseInt(validateUser.result?.resultRows[0][0]) !== user_id) {
+        const userRow = validateUser.result?.resultRows?.[0];
+
+        if (!userRow || parseInt(userRow[0]) !== user_id) {
             return {
                 success: false,
                 error: 'Credential not found or does not belong to the user',
@@ -431,6 +435,8 @@ export async function addCredential(user_id: number, credential: object) {
             }
         }
         
+        addActivityCred(user_id, "Add Cred", vaultData.new_credential_id)
+
         // Start transaction
         await executeQuery('BEGIN TRANSACTION')
         
@@ -615,6 +621,8 @@ export async function updateCredential(user_id: number, credential_id: number, c
             }
         }
         
+        addActivityCred(user_id, "Edit Cred", credential_id)
+
         // Start transaction
         await executeQuery('BEGIN TRANSACTION')
         
@@ -785,6 +793,8 @@ export async function deleteIndividualCredential(user_id: number, credential_id:
                 timeout: 10000, // 10 second timeout
                 withCredentials: true // Send session cookies
             });
+
+            addActivityCred(user_id, "Delete Cred", credential_id)
 
             return response.data;
             

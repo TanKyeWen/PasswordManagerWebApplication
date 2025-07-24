@@ -62,6 +62,8 @@
     const syncClick = () => {
         btnMsg.value = syncBtnMsg.value[1].message
 
+        loadVault()
+
         setTimeout(() => {
                 btnMsg.value = syncBtnMsg.value[0].message
             }, 3000)

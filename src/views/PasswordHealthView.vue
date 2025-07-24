@@ -1,36 +1,89 @@
 <script setup lang="ts">
     import { useRouter } from 'vue-router';
-    import { ref } from 'vue';
-    // function updateQuarterCircle(greenPercentage) {
-    //     const redPercentage = 100 - greenPercentage;
-    //     const quarterCircle = document.getElementById('quarter-circle');
-    //     quarterCircle.style.background = `conic-gradient(
-    //         green 0% ${greenPercentage}%, 
-    //         red ${greenPercentage}% 100%
-    //     )`;
-    // }
-    const credentials = ref([
-        {
-            id: 1,
-            website: 'Google.com',
-            username: 'alice@example.com',
-            folders: ['Test', 'May The Fire and Flame', 'Blackns'],
-        },
-        {
-            id: 2,
-            website: 'huahu.com',
-            username: 'alice@example.com',
-            folders: ['Test', '###@'],
-        },
-        {
-            id: 3,
-            website: 'Yahoo.com',
-            username: 'alice@example.com',
-            folders: ['Num'],
-        }
-    ])
+    import { onMounted, ref } from 'vue';
+    import axios from 'axios';
+    import { getAllCredentials, getIndividualCredential } from '@/db/credential_queries';
+    
+    function updateQuarterCircle(greenPercentage) {
+        const redPercentage = 100 - greenPercentage;
+        const quarterCircle = document.getElementById('quarter-circle');
+        quarterCircle.style.background = `conic-gradient(
+            green 0% ${greenPercentage}%, 
+            red ${greenPercentage}% 100%
+        )`;
+    }
 
-    const router = useRouter();
+    const router = useRouter();    
+
+    const loading = ref(false)
+    const credentials = ref([])
+
+    async function loadPasswordHealth() {
+        loading.value = true
+        try {
+            const userId = localStorage.getItem('user_id')
+            if (!userId) {
+                router.push('/signIn')
+                return
+            }
+
+            const fetchedCredentials = await getAllCredentials(parseInt(userId))
+            console.log('Raw fetchedCredentials:', fetchedCredentials)
+            
+            // Fetch data from API with proper headers
+            const response = await axios.get('/api/password-health', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                },
+                timeout: 10000, // 10 second timeout
+                withCredentials: true // Send session cookies
+            })
+
+            // Validate response structure
+            if (!response.data || !response.data.success) {
+                throw new Error(response.data?.error || 'Invalid response from server')
+            }
+
+            console.log('Duplicate password received:', response.data)            
+        
+            for (const credentialId of response.data.duplicate){
+                const fetchedCredential = await getIndividualCredential(parseInt(userId), parseInt(credentialId))
+                console.log('Raw fetchedCredentials:', fetchedCredential)
+
+                if (fetchedCredential.success) {
+                    const cred = fetchedCredential.data;
+                    credentials.value.push({
+                        id: cred[0],
+                        website: cred[1],
+                        username: cred[2],
+                    });
+                    
+                } else if (fetchedCredential.code === 401 || fetchedCredential.code === 403) {
+                    console.log('Unauthorized Access:', fetchedCredential.error)
+                    router.push('/signIn')
+                } else if (fetchedCredential.code === 404) {
+                    console.log('Credential not found:', fetchedCredential.error)
+                    router.push('/vault')
+                } else {
+                    console.error('Error fetching credentials:', fetchedCredential.error)
+                }
+            }
+        
+        } catch (error) {
+            console.error('Error loading vault:', error)
+            if (error.response?.status === 401) {
+                router.push('/signIn')
+            }
+        } finally {
+            loading.value = false
+        }
+    }
+
+    onMounted(() => {
+        loadPasswordHealth()
+    })
+
     const redirectToEdit = (credentialID : number) => {
         router.push({
             name:'editCredential',

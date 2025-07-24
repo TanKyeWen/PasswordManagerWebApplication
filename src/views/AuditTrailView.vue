@@ -1,37 +1,57 @@
-<script>
-    export default {
-        data() {
-            return {
-                activities: [
-                    { id: 1, activityName: 'Add', date: '2025-04-15', location: 'Tokyo', operatingSystem: 'Windows' },
-                    { id: 2, activityName: 'Delete', date: '2025-04-14', location: 'New York', operatingSystem: 'MacOS' },
-                    { id: 3, activityName: 'Attempted Login', date: '2025-04-13', location: 'London, Burmingham, Manhattan', operatingSystem: 'Linux' },
-                ],
-                sortKey: 'date',
-                sortOrder: 'asc',
-            };
-        },
-        computed: {
-            sortedActivities() {
-                return this.activities.sort((a, b) => {
-                    let modifier = this.sortOrder === 'asc' ? 1 : -1;
-                    if (a[this.sortKey] < b[this.sortKey]) return -1 * modifier;
-                    if (a[this.sortKey] > b[this.sortKey]) return 1 * modifier;
-                    return 0;
-                });
-            },
-        },
-        methods: {
-            sortTable(key) {
-                if (this.sortKey === key) {
-                    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-                } else {
-                    this.sortKey = key;
-                    this.sortOrder = 'asc';
-                }
-            },
-        },
-    };
+<script setup="ts">
+    import { getActivityLogs } from "@/audittrail/queries";
+    import { onMounted, ref } from "vue"
+
+    const activities=ref([])
+    const sortKey = ref('')
+    const sortOrder = ref('asc')
+    const userId = localStorage.getItem('user_id')
+
+    const loadActivities = async () => {
+        try {
+            const result = await getActivityLogs(parseInt(userId))
+            if (result.success) {
+                activities.value = result.Items
+            }
+        } catch (error) {
+            console.error('Error loading activities:', error)
+            activities.value = []
+        }
+    }
+    
+    onMounted(() => {
+        loadActivities();
+    });
+
+    const sortedActivities = computed(() => {
+        if (!sortKey.value) return activities.value
+        
+        return [...activities.value].sort((a, b) => {
+            let modifier = sortOrder.value === 'asc' ? 1 : -1
+            
+            // Handle different data types
+            let aVal = a[sortKey.value]
+            let bVal = b[sortKey.value]
+            
+            // Convert to strings for comparison if needed
+            if (typeof aVal === 'string') aVal = aVal.toLowerCase()
+            if (typeof bVal === 'string') bVal = bVal.toLowerCase()
+            
+            if (aVal < bVal) return -1 * modifier
+            if (aVal > bVal) return 1 * modifier
+            return 0
+        })
+    })
+
+    const sortTable = (key) => {
+        if (sortKey.value === key) {
+            sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+        } else {
+            sortKey.value = key
+            sortOrder.value = 'asc'
+        }
+    }
+
 </script>
 <template>
     <body id="audit-trail-page">
@@ -41,18 +61,38 @@
                 <table>
                     <thead>
                         <tr>
-                            <th @click="sortTable('activityName')">Activity Name</th>
-                            <th @click="sortTable('date')">Date</th>
-                            <th @click="sortTable('location')">Location</th>
-                            <th @click="sortTable('operatingSystem')">Operating System</th>
+                            <th @click="sortTable('CredID')" class="sortable">
+                                Activity Name
+                                <span v-if="sortKey === 'CredID'">
+                                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                                </span>
+                            </th>
+                            <th @click="sortTable('ActivityName')" class="sortable">
+                                Activity Name
+                                <span v-if="sortKey === 'ActivityName'">
+                                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                                </span>
+                            </th>
+                            <th @click="sortTable('Date')" class="sortable">
+                                Date
+                                <span v-if="sortKey === 'Date'">
+                                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                                </span>
+                            </th>
+                            <th @click="sortTable('IP')" class="sortable">
+                                Location
+                                <span v-if="sortKey === 'IP'">
+                                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                                </span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="activity in sortedActivities" :key="activity.id">
-                            <td>{{ activity.activityName }}</td>
-                            <td>{{ activity.date }}</td>
-                            <td>{{ activity.location }}</td>
-                            <td>{{ activity.operatingSystem }}</td>
+                        <tr v-for="activity in sortedActivities" :key="activity.LogID">
+                            <td>{{ activity.ActivityName }}</td>
+                            <td>{{ activity.Date }}</td>
+                            <td>{{ activity.IP }}</td>
+                            <td>{{ activity.Timestamp }}</td>
                         </tr>
                     </tbody>
                 </table>
