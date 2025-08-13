@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { ref } from 'vue'
 import { useSQLite } from '@/composables/useSQLite'
-import { addActivity, addActivityCred } from '@/audittrail/queries'
+import { addActivityCred } from '@/audittrail/queries'
 
 const { isLoading, error, executeQuery } = useSQLite()
 
@@ -91,7 +91,6 @@ export async function fetchVaultData(user_id: number) {
             throw new Error(response.data?.error || 'Invalid response from server')
         }
 
-        addActivity(user_id, 'Fetch Vault Data')
         console.log('Vault data received:', response.data)
 
         // Extract credentials array from response

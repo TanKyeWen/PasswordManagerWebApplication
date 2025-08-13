@@ -2,7 +2,6 @@
     import { useRouter, RouterLink } from 'vue-router'
     import axios from 'axios'
     import { onMounted, ref } from 'vue'
-import { addActivity } from '@/audittrail/queries'
     axios.defaults.baseURL = 'http://localhost:9011'
 
     const router = useRouter()
@@ -37,7 +36,6 @@ import { addActivity } from '@/audittrail/queries'
             );
             
             console.log('Signup successful:', response.data);
-            addActivity(response.data.user.user_id, "Register Fail")
             localStorage.clear();
             localStorage.setItem('user_id', response.data.user.user_id);
             return response.data;
