@@ -3,7 +3,7 @@
     import profileIcon from '@/assets/profile_icon.png';
     import axios from 'axios'
     import { ref } from 'vue'
-    axios.defaults.baseURL = 'http://localhost:9011'
+    axios.defaults.baseURL = import.meta.env.VITE_BACKEND_API_URL
 
     const router = useRouter()
 

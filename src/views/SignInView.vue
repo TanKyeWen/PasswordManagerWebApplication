@@ -2,7 +2,8 @@
     import { useRouter, RouterLink } from 'vue-router'
     import axios from 'axios'
     import { onMounted, ref } from 'vue'
-    axios.defaults.baseURL = 'http://localhost:9011'
+    import { addActivity } from '@/audittrail/queries'
+    axios.defaults.baseURL = import.meta.env.VITE_BACKEND_API_URL
 
     const router = useRouter()
 
@@ -35,6 +36,7 @@
 
             localStorage.clear();
             localStorage.setItem('user_id', response.data.user.user_id);
+            addActivity(response.data.user.user_id, "Login", null); // Log the activity
             return response.data;
             
         } catch (error) {
@@ -48,6 +50,7 @@
             const result = await signin(username.value, password.value);
             console.log('User logged in:', result);
 
+            
             // Redirect to the vault view after successful login
             router.push('/vault');
 

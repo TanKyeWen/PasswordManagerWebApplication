@@ -1,32 +1,50 @@
 <script setup="ts">
-    import { getActivityLogs } from "@/audittrail/queries";
-    import { onMounted, ref } from "vue"
+    import { getActivitiesLogs } from "@/audittrail/queries";
+    import { onMounted, ref, computed } from "vue"
+    import { useRouter, RouterLink } from 'vue-router';
 
-    const activities=ref([])
+    const router = useRouter()
+    const logs=ref([])
     const sortKey = ref('')
     const sortOrder = ref('asc')
     const userId = localStorage.getItem('user_id')
 
-    const loadActivities = async () => {
+    async function loadLogs(){
         try {
-            const result = await getActivityLogs(parseInt(userId))
+            const result = await getActivitiesLogs(parseInt(userId))
+            console.log('Logs loaded:', result)
+
             if (result.success) {
-                activities.value = result.Items
+                logs.value = result.data.map((log) => ({
+                    LogID:        log.log_id,
+                    UserID:       log.user_id,
+                    CredID:       log.cred_id,
+                    ActivityName: log.activity_name,
+                    Date:         log.date,
+                    IP:           log.ip,
+                    Timestamp:    log.timestamp
+                }))
+                console.log('Mapped Logs:', logs.value)
+            } else if (result.code === 401 || result.code === 403) {
+                console.log('Unauthorized Access:', result.error)
+                router.push('/signIn')
+            } else {
+                console.error('Error fetching Logs:', result.error)
             }
         } catch (error) {
-            console.error('Error loading activities:', error)
-            activities.value = []
+            console.error('Error loading Logs:', error)
+            logs.value = []
         }
     }
     
     onMounted(() => {
-        loadActivities();
+        loadLogs();
     });
 
-    const sortedActivities = computed(() => {
-        if (!sortKey.value) return activities.value
+    const sortedLogs = computed(() => {
+        if (!sortKey.value) return logs.value
         
-        return [...activities.value].sort((a, b) => {
+        return [...logs.value].sort((a, b) => {
             let modifier = sortOrder.value === 'asc' ? 1 : -1
             
             // Handle different data types
@@ -56,13 +74,19 @@
 <template>
     <body id="audit-trail-page">
         <main>
-            <header>Activity Log</header>
+            <header>Audit Trail</header>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
+                            <th @click="sortTable('IP')" class="sortable">
+                                IP Address
+                                <span v-if="sortKey === 'IP'">
+                                    {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                                </span>
+                            </th>
                             <th @click="sortTable('CredID')" class="sortable">
-                                Activity Name
+                                Credential ID (if any)
                                 <span v-if="sortKey === 'CredID'">
                                     {{ sortOrder === 'asc' ? '↑' : '↓' }}
                                 </span>
@@ -79,20 +103,21 @@
                                     {{ sortOrder === 'asc' ? '↑' : '↓' }}
                                 </span>
                             </th>
-                            <th @click="sortTable('IP')" class="sortable">
-                                Location
-                                <span v-if="sortKey === 'IP'">
+                            <th @click="sortTable('Timestamp')" class="sortable">
+                                Time
+                                <span v-if="sortKey === 'Timestamp'">
                                     {{ sortOrder === 'asc' ? '↑' : '↓' }}
                                 </span>
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="activity in sortedActivities" :key="activity.LogID">
-                            <td>{{ activity.ActivityName }}</td>
-                            <td>{{ activity.Date }}</td>
-                            <td>{{ activity.IP }}</td>
-                            <td>{{ activity.Timestamp }}</td>
+                        <tr v-for="log in sortedLogs" :key="log.LogID">
+                            <td>{{ log.IP }}</td>
+                            <td>{{ log.CredID }}</td>
+                            <td>{{ log.ActivityName }}</td>
+                            <td>{{ log.Date }}</td>
+                            <td>{{ log.Timestamp }}</td>
                         </tr>
                     </tbody>
                 </table>

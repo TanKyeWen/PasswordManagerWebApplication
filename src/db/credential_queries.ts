@@ -1,13 +1,13 @@
 import axios from 'axios'
 import { ref } from 'vue'
 import { useSQLite } from '@/composables/useSQLite'
-import { addActivityCred } from '@/audittrail/queries'
+import { addActivity } from '@/audittrail/queries'
 
 const { isLoading, error, executeQuery } = useSQLite()
 
 // Configure axios defaults
 axios.defaults.withCredentials = true // Important for session cookies
-axios.defaults.baseURL = 'http://localhost:9011'
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_API_URL
 
 /**
  * Get current session user ID from API
@@ -81,6 +81,8 @@ export async function fetchVaultData(user_id: number) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             },
             timeout: 10000, // 10 second timeout
             withCredentials: true // Send session cookies
@@ -100,7 +102,8 @@ export async function fetchVaultData(user_id: number) {
             return {
                 success: true,
                 message: 'No vault data to sync',
-                insertedCount: 0
+                insertedCount: 0,
+                code: 200
             }
         }
 
@@ -433,8 +436,6 @@ export async function addCredential(user_id: number, credential: object) {
                 code: 500
             }
         }
-        
-        addActivityCred(user_id, "Add Cred", vaultData.new_credential_id)
 
         // Start transaction
         await executeQuery('BEGIN TRANSACTION')
@@ -463,7 +464,7 @@ export async function addCredential(user_id: number, credential: object) {
 
             // Execute insert query
             await executeQuery(insertSQL, [
-                vaultData.new_credential_id, // Use the ID from the response
+                vaultData.credential_id, // Use the ID from the response
                 user_id,
                 credential.credential_website.trim(),
                 credential.credential_username.trim(),
@@ -472,7 +473,8 @@ export async function addCredential(user_id: number, credential: object) {
 
             await executeQuery('COMMIT')
 
-            console.log(`Credential ${vaultData.new_credential_id} added for user ${user_id}`); 
+            console.log(`Credential ${vaultData.credential_id} added for user ${user_id}`); 
+            addActivity(user_id, "Add Cred", vaultData.credential_id)
 
             return {
                 success: true,
@@ -620,7 +622,7 @@ export async function updateCredential(user_id: number, credential_id: number, c
             }
         }
         
-        addActivityCred(user_id, "Edit Cred", credential_id)
+        addActivity(user_id, "Edit Cred", credential_id)
 
         // Start transaction
         await executeQuery('BEGIN TRANSACTION')
@@ -793,7 +795,7 @@ export async function deleteIndividualCredential(user_id: number, credential_id:
                 withCredentials: true // Send session cookies
             });
 
-            addActivityCred(user_id, "Delete Cred", credential_id)
+            addActivity(user_id, "Delete Cred", credential_id)
 
             return response.data;
             
