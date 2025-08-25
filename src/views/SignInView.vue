@@ -26,6 +26,8 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
                     },
                     timeout: 10000, // 10 second timeout
                     withCredentials: true, // Send session cookies

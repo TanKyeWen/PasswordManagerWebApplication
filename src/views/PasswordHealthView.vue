@@ -1,22 +1,17 @@
 <script setup lang="ts">
     import { useRouter } from 'vue-router';
-    import { onMounted, ref } from 'vue';
+    import { computed, onMounted, ref } from 'vue';
     import axios from 'axios';
-    import { getAllCredentials, getIndividualCredential } from '@/db/credential_queries';
-    
-    function updateQuarterCircle(greenPercentage) {
-        const redPercentage = 100 - greenPercentage;
-        const quarterCircle = document.getElementById('quarter-circle');
-        quarterCircle.style.background = `conic-gradient(
-            green 0% ${greenPercentage}%, 
-            red ${greenPercentage}% 100%
-        )`;
-    }
+    import { getAllCredentialsCount, getIndividualCredential } from '@/db/credential_queries';
 
     const router = useRouter();    
 
     const loading = ref(false)
     const credentials = ref([])
+    const weakDupCount = ref(0)
+    const allCredentialsCount = ref(0)
+    const redPercentage = ref(0)
+    const rankGrade = ref('F')
 
     async function loadPasswordHealth() {
         loading.value = true
@@ -27,9 +22,6 @@
                 return
             }
 
-            const fetchedCredentials = await getAllCredentials(parseInt(userId))
-            console.log('Raw fetchedCredentials:', fetchedCredentials)
-            
             // Fetch data from API with proper headers
             const response = await axios.get('/api/password-health', {
                 headers: {
@@ -45,11 +37,14 @@
                 throw new Error(response.data?.error || 'Invalid response from server')
             }
 
-            console.log('Duplicate password received:', response.data)            
+            console.log('Duplicate and weak password received:', response.data)
+            console.log('Duplicate and weak password Len:', response.data.weak_dup_len)
         
-            for (const credentialId of response.data.duplicate){
+            weakDupCount.value = Number(response.data.weak_dup_len)
+
+            for (const credentialId of response.data.password_group){
                 const fetchedCredential = await getIndividualCredential(parseInt(userId), parseInt(credentialId))
-                console.log('Raw fetchedCredentials:', fetchedCredential)
+                console.log('Raw fetchedCredential:', fetchedCredential)
 
                 if (fetchedCredential.success) {
                     const cred = fetchedCredential.data;
@@ -69,6 +64,10 @@
                     console.error('Error fetching credentials:', fetchedCredential.error)
                 }
             }
+
+            const credentialCountReponse = await getAllCredentialsCount(parseInt(userId))
+
+            allCredentialsCount.value = Number(credentialCountReponse.credentialCount)
         
         } catch (error) {
             console.error('Error loading vault:', error)
@@ -76,7 +75,19 @@
                 router.push('/signIn')
             }
         } finally {
-            loading.value = false
+            redPercentage.value = Math.round((weakDupCount.value / allCredentialsCount.value) * 100)
+
+            if(redPercentage.value > 10){
+                rankGrade.value = 'F'
+            }else if (redPercentage.value > 5){
+                rankGrade.value = 'C'
+            }else if (redPercentage.value > 2){
+                rankGrade.value = 'B'
+            }else if (redPercentage.value > 0){
+                rankGrade.value = 'A'
+            }else{
+                rankGrade.value = 'S'
+            }
         }
     }
 
@@ -98,12 +109,17 @@
                 <div class="pass-health-report">
                     <div class="health-semi-circle">
                         <div class="barOverflow">
-                            <div class="bar-semi-circle"></div>
+                            <div class="bar-semi-circle" id="semi-circle" :style="{
+                                                                                background: `conic-gradient(
+                                                                                    red 0% ${redPercentage}%,
+                                                                                    green ${redPercentage}% 100%
+                                                                                )`
+                                                                                }"></div>
                         </div>
-                        <div class="pass-health-percentage">4%</div>
+                        <div class="pass-health-percentage">{{ redPercentage }}%</div>
                     </div>
                     <div class="pass-health-msg">
-                        Congrats You Got A Rank!
+                        Congrats You Got {{ rankGrade }} Rank!
                     </div>
                 </div>
                 <div class="pass-health-info">
@@ -166,12 +182,20 @@
         top: 0; left: 0;
         width: 270px; height: 270px; /* full circle! */
         border-radius: 50%;
-        box-sizing: border-box;
-        border: 25px solid green;     /* half gray, */
-        border-bottom-color: red;  /* half azure */
-        border-right-color: red; 
+    }
+    .bar-semi-circle::before{
+        content: '';
+        position: absolute;
+        top: 25px;
+        left: 25px;
+        width: 220px;
+        height: 220px;
+        background: #593939;
+        border-radius: 50%;
     }
     .pass-health-percentage{
+        position: relative;
+        z-index: 10;
         font-size: 45px;
         font-weight: 600;
     }

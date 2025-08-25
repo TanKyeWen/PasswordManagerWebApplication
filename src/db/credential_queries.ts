@@ -246,6 +246,42 @@ export async function getAllCredentials(userId: number) {
     }
 }
 
+export async function getAllCredentialsCount(userId:number){
+    try {
+        // Validate user access
+        const accessCheck = await validateUserAccess(userId)
+        if (!accessCheck.valid) {
+            return {
+                success: false,
+                error: accessCheck.error,
+                code: accessCheck.code
+            }
+        }
+
+        const result = await executeQuery(`
+            SELECT COUNT(id) as credential_count
+            FROM credentials
+            WHERE user_id = ?
+            `, [userId])
+        
+        const rows = result.result?.resultRows || [];
+        const count = rows[0] || 99;
+
+        return {
+            success: true,
+            userId: userId,
+            credentialCount: count,
+            code: 200
+        };
+
+    } catch (err) {
+        return {
+            success: false,
+            error: err instanceof Error ? err.message : 'Failed to fetch credentials'
+        }
+    }
+}
+
 /**
  * Retrieve individual credential data for auth user
  */
@@ -311,6 +347,8 @@ export async function getIndividualCredential(user_id: number, credential_id: nu
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 },
                 timeout: 10000, // 10 second timeout
                 withCredentials: true // Send session cookies
@@ -414,6 +452,8 @@ export async function addCredential(user_id: number, credential: object) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             },
             timeout: 10000, // 10 second timeout
             withCredentials: true // Send session cookies
@@ -473,8 +513,8 @@ export async function addCredential(user_id: number, credential: object) {
 
             await executeQuery('COMMIT')
 
+            addActivity(user_id, "Add Cred", vaultData.credential_id);
             console.log(`Credential ${vaultData.credential_id} added for user ${user_id}`); 
-            addActivity(user_id, "Add Cred", vaultData.credential_id)
 
             return {
                 success: true,
@@ -599,6 +639,8 @@ export async function updateCredential(user_id: number, credential_id: number, c
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             },
             timeout: 10000, // 10 second timeout
             withCredentials: true // Send session cookies
@@ -790,6 +832,8 @@ export async function deleteIndividualCredential(user_id: number, credential_id:
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest', // Helps with CSRF protection
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 },
                 timeout: 10000, // 10 second timeout
                 withCredentials: true // Send session cookies

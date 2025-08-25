@@ -1,12 +1,13 @@
 <script setup lang="ts">
     import { RouterLink, useRouter } from 'vue-router';
-    import { ref, onMounted } from 'vue'
+    import { ref, onMounted, computed } from 'vue'
     import { fetchVaultData, getAllCredentials } from '@/db/credential_queries';
 
     const router = useRouter();    
 
     const loading = ref(false)
     const credentials = ref([])
+    const searchQuery = ref("")
 
     async function loadVault() {
         loading.value = true
@@ -107,6 +108,16 @@
             }
         }
     }
+
+    const filteredCredentials = computed(() => {
+        const q = searchQuery.value.trim().toLowerCase()
+        if (!q) return credentials.value
+            return credentials.value.filter(c =>
+                    Object.values(c).some(val =>
+                        String(val).toLowerCase().includes(q)
+                )
+            )
+    })
 </script>
 
 <template>
@@ -114,13 +125,13 @@
         <main>
             <div class="view-container">
                 <div class="search-bar">
-                    <input type="text" placeholder="Search...">
+                    <input v-model="searchQuery" type="text" placeholder="Search...">
                 </div>
                 <div class="credential-container">
                     <div v-if="credentials.length === 0">
                         No credentials found
                     </div>
-                    <div v-for="credential in credentials" 
+                    <div v-for="credential in filteredCredentials" 
                         :key="credential.id" 
                         class="individual-credential-container"
                         @click="redirectToIndividualPage(credential.id)">
