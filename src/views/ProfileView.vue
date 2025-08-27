@@ -7,6 +7,8 @@
 
     const router = useRouter()
 
+    const username = localStorage.getItem('username')
+
     async function logout() {
         try {
             const response = await axios.post('/api/auth/signout', {
@@ -64,8 +66,7 @@
     <body id="profile-page">
         <main>
             <div class="user-container">
-                <img :src="profileIcon" alt="" class="profile-img"/>
-                <div class="user-name">User yesy 1</div>
+                <div class="user-name" v-text="username"></div>
             </div>
             <nav class="profile-container">
                 <RouterLink to="/passwordHealth" active-class="active-link">

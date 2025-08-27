@@ -99,7 +99,7 @@
             if (!navigator.clipboard) {
                 throw new Error('Clipboard API not supported');
             }
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(password.value);
             console.log('Copied to clipboard:', text);
             
         } catch (err) {

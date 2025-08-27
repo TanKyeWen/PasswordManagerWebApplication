@@ -39,6 +39,7 @@
             console.log('Signup successful:', response.data);
             localStorage.clear();
             localStorage.setItem('user_id', response.data.user.user_id);
+            localStorage.setItem('username', response.data.user.username);
             addActivity(response.data.user.user_id, "Register", null); // Log the activity
             return response.data;
             
