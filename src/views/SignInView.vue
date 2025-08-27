@@ -43,6 +43,7 @@
             
         } catch (error) {
             console.error('Login failed:', error.response?.data || error.message);
+            alert(`Login Failed: ${error.response?.data.error}`)
             throw error;
         }
     }
@@ -51,7 +52,6 @@
         try {
             const result = await signin(username.value, password.value);
             console.log('User logged in:', result);
-
             
             // Redirect to the vault view after successful login
             router.push('/vault');

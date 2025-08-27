@@ -109,7 +109,9 @@
                         Passphrase
                     </div>
                 </div>
-                <component :is="tabs[currentComponent]" />
+                <div class="gen-display">
+                    <component :is="tabs[currentComponent]" />
+                </div>
             </div>
             <div class="action-section">
                 <div class="add-credential-btn" @click="handleAddCredential">
@@ -191,7 +193,7 @@
     .gen-container{
         flex: 1;
     }
-    .gen-opt{
+    .gen-opt, .gen-display{
         display: flex;
         justify-content: center;
         font-size: 25px;

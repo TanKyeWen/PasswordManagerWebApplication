@@ -44,6 +44,7 @@
             
         } catch (error) {
             console.error('Signup failed:', error.response?.data || error.message);
+            alert(`Login Failed: ${error.response?.data.error}`)
             throw error;
         }
     }
