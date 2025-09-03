@@ -62,6 +62,7 @@
                 router.push('/vault')
             } else {
                 console.log(`Error adding credential: ${result.error}`);
+                alert(`Error adding credential: ${result.error}`);
             }
         } catch (error) {
             console.error('Error adding credential:', error);

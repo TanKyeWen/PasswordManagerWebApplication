@@ -86,6 +86,7 @@
             }else if (redPercentage.value > 0){
                 rankGrade.value = 'A'
             }else{
+                redPercentage.value = 0
                 rankGrade.value = 'S'
             }
         }
